@@ -1,5 +1,5 @@
 # WinOptimizer
-Windows Optimization Utility
+WinOptimizer is designed to help diagnose and resolve issues that may be slowing down your Windows system. Its main purpose is to identify unnecessary or problematic software, optimize system settings, and help restore your PC to smoother, faster performance.
 
 # Features
 
