@@ -42,7 +42,6 @@ Windows Optimization Utility
   - INCA nProtect KeyCrypt
   - Hancom GPKI Tool
 
-
 - Ask if user wants to delete it for clean environmenet
 
 - Delete all of them, because all of them are consuming heavy memory and CPU, so user laptop is becoming slower
