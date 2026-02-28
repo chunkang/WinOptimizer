@@ -75,6 +75,38 @@ but always backup your registry before changes. WinOptimizer can prompt you to c
 These system tweaks, in addition to removing unwanted banking/security software, will help maintain a cleaner and faster Windows environment.
 
 
+## Network (Ethernet) Performance Optimizations
+WinOptimizer can also assist in optimizing your network (specifically Ethernet) settings to improve speed and stability. If you experience sluggish Ethernet performance or network interruptions, you may benefit from the following tweaks:
+
+- **Disable Large Send Offload (LSO):** Reduces CPU overhead but can cause performance issues on some hardware.
+- **Enable or tune Receive Side Scaling (RSS):** Allows efficient packet processing on multicore CPUs.
+- **Disable Energy Efficient Ethernet (EEE):** Prevents latency introduced by power-saving features.
+- **Set Speed & Duplex manually:** Sometimes labeled as "Auto Negotiation"—setting a fixed speed (e.g., 1 Gbps Full Duplex) may improve reliability.
+- **Optimize TCP parameters via registry:**
+  - Adjust the value of `TcpAckFrequency` to reduce latency for certain applications.
+  - Enable or tune TCP Window Auto-Tuning.
+
+**Example network settings to adjust:**
+1. Open "Device Manager" → Select your Ethernet adapter → Right-click "Properties" → "Advanced" tab
+2. Adjust parameters such as:
+   - Large Send Offload: `Disabled`
+   - Energy Efficient Ethernet: `Disabled`
+   - Speed & Duplex: `1.0 Gbps Full Duplex` (if supported on both ends)
+
+**Registry Tweaks:**
+- `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters`
+  - `TcpAckFrequency` → `1`
+  - `TcpNoDelay` → `1`
+- `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters`
+  - `DisableBandwidthThrottling` → `1`
+  - `DisableLargeMtu` → `0`
+
+> **Warning:**  
+> Advanced network/registry changes may impact system or network stability. Always document your changes and consider backing up settings before proceeding.
+
+By tuning these Ethernet settings, you may experience lower latency, better throughput, and improved overall network reliability, especially in demanding environments or when using enterprise applications.
+
+
 ## Ask if user wants to delete it for clean environmenet
 
 ## Delete all of them, because all of them are consuming heavy memory and CPU, so user laptop is becoming slower
