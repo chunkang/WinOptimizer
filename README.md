@@ -1,6 +1,25 @@
 # WinOptimizer
 WinOptimizer is designed to help diagnose and resolve issues that may be slowing down your Microsoft Windows system. Its main purpose is to identify unnecessary or problematic software, optimize system settings, and help restore your PC to smoother, faster performance.
 
+# System Requirements
+
+To compile and build WinOptimizer, you need:
+
+- **.NET 8.0 SDK** or later
+- **Windows 10/11** (Windows Forms requires a Windows environment)
+- **Visual Studio 2022** (recommended) or the `dotnet` CLI
+- **Administrator privileges** are required at runtime (UAC elevation via `app.manifest`)
+
+### Build
+
+```bash
+# Build
+dotnet build src/WinOptimizer/WinOptimizer.csproj -c Release
+
+# Publish single-file self-contained executable
+dotnet publish src/WinOptimizer/WinOptimizer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
 # Features
 
 ## Detect security utilities installed for banking processes, such as:
