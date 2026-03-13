@@ -94,6 +94,59 @@ but always backup your registry before changes. WinOptimizer can prompt you to c
 These system tweaks, in addition to removing unwanted banking/security software, will help maintain a cleaner and faster Windows environment.
 
 
+## Browser Cache Cleanup
+WinOptimizer includes features to clean up browser cache for improved performance and more free disk space. Removing cached data from your web browsers (such as Microsoft Edge, Google Chrome, Mozilla Firefox, and others) helps eliminate unnecessary files, potentially resolving browser slowdowns and freeing up storage.
+
+### Supported Browsers:
+- Microsoft Edge
+- Google Chrome
+- Mozilla Firefox
+- Opera
+- Brave
+
+### What Gets Cleaned:
+- Browser cache (temporary Internet files)
+- Cookies (user may be given option to keep or delete)
+- Download history
+- Browsing history (optional)
+- Other temporary browser data
+
+### Typical Cache Locations
+
+**Edge (Chromium-based):**
+- `C:\Users\<User>\AppData\Local\Microsoft\Edge\User Data\Default\Cache`
+
+**Chrome:**
+- `C:\Users\<User>\AppData\Local\Google\Chrome\User Data\Default\Cache`
+
+**Firefox:**
+- `C:\Users\<User>\AppData\Local\Mozilla\Firefox\Profiles\<profile>\cache2`
+
+**Opera:**
+- `C:\Users\<User>\AppData\Roaming\Opera Software\Opera Stable\Cache`
+
+**Brave:**
+- `C:\Users\<User>\AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Cache`
+
+> Replace `<User>` with your Windows username and `<profile>` with the appropriate Firefox profile folder.
+
+---
+
+**How WinOptimizer helps:**
+- Identifies all installed supported browsers
+- Detects cache directories automatically
+- Provides an option to safely delete browser cache and temporary files (without affecting bookmarks or saved passwords)
+- Offers clear prompts before deletion and can skip cleanup if browser is currently running (to avoid file access errors)
+
+**Benefits of cleaning browser cache:**
+- Saves disk space
+- May improve browser speed
+- Reduces potential privacy risks from old browsing data
+
+> **Tip:** For maximum results, close all browsers before running the cache cleanup.
+
+---
+
 ## Network (Ethernet) Performance Optimizations
 WinOptimizer can also assist in optimizing your network (specifically Ethernet) settings to improve speed and stability. If you experience sluggish Ethernet performance or network interruptions, you may benefit from the following tweaks:
 
