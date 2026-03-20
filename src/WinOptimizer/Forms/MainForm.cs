@@ -26,6 +26,7 @@ public partial class MainForm : Form
     {
         InitializeComponent();
         Text = $"WinOptimizer v{AppVersion}";
+        Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
     }
 
     public void SetStatus(string message)

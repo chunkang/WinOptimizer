@@ -8,6 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>WinOptimizer</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <RootNamespace>WinOptimizer</RootNamespace>
     <Description>Windows system optimizer - detect banking software and optimize system settings</Description>
   </PropertyGroup>
