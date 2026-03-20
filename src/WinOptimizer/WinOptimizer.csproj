@@ -13,20 +13,24 @@
   </PropertyGroup>
 
   <!-- Version from git tag: vMajor.Minor.0 tag + commit count as patch -->
-  <Target Name="SetGitVersion" BeforeTargets="GetAssemblyVersion;GenerateNuspec;BeforeCompile">
-    <Exec Command="git describe --tags --long --match &quot;v[0-9]*&quot; 2>nul || echo v1.0.0-0-g0000000"
-          ConsoleToMsBuild="true" StandardOutputImportance="low">
+  <Target Name="SetGitVersion" BeforeTargets="PrepareForBuild;GenerateAssemblyInfo;GetAssemblyVersion">
+    <Exec Command="git describe --tags --long --match &quot;v[0-9]*&quot; 2>&amp;1"
+          ConsoleToMsBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="GitDescribe" />
     </Exec>
     <PropertyGroup>
-      <!-- Parse v1.0.0-5-gabcdef into 1.0.5 -->
+      <GitDescribe Condition="!$(GitDescribe.StartsWith('v'))">v0.1.0-0-g0000000</GitDescribe>
+      <!-- Parse v0.1.0-3-gabcdef into Major.Minor=0.1 Commits=3 -->
       <GitTag>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v(\d+\.\d+)\.\d+-(\d+)-g[0-9a-f]+').Groups[1].Value)</GitTag>
       <GitCommits>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v\d+\.\d+\.\d+-(\d+)-g[0-9a-f]+').Groups[1].Value)</GitCommits>
       <GitHash>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'g([0-9a-f]+)').Groups[1].Value)</GitHash>
       <Version Condition="'$(GitTag)' != ''">$(GitTag).$(GitCommits)</Version>
-      <Version Condition="'$(GitTag)' == ''">1.0.0</Version>
-      <InformationalVersion>$(Version)+$(GitHash)</InformationalVersion>
+      <Version Condition="'$(GitTag)' == ''">0.1.0</Version>
+      <AssemblyVersion>$(Version).0</AssemblyVersion>
+      <FileVersion>$(Version).0</FileVersion>
+      <InformationalVersion>$(Version)</InformationalVersion>
     </PropertyGroup>
+    <Message Importance="high" Text="Git version: $(Version) (from $(GitDescribe))" />
   </Target>
 
   <ItemGroup>
