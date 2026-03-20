@@ -27,10 +27,15 @@ jobs:
             -p:PublishSingleFile=true `
             -p:EnableCompressionInSingleFile=true
 
+      - name: Package
+        run: |
+          $publishDir = "src/WinOptimizer/bin/Release/net8.0-windows/win-x64/publish"
+          Compress-Archive -Path "$publishDir/WinOptimizer.exe" -DestinationPath "WinOptimizer.zip"
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $exe = "src/WinOptimizer/bin/Release/net8.0-windows/win-x64/publish/WinOptimizer.exe"
           $tag = "${{ github.ref_name }}"
-          gh release create $tag $exe --title "WinOptimizer $tag" --generate-notes
+          gh release create $tag $exe WinOptimizer.zip --title "WinOptimizer $tag" --generate-notes
