@@ -1,3 +1,5 @@
+using WinOptimizer.Controls;
+
 namespace WinOptimizer.Forms;
 
 partial class MainForm
@@ -72,8 +74,8 @@ partial class MainForm
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(700, 520);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MinimumSize = new Size(700, 520);
         StartPosition = FormStartPosition.CenterScreen;
         Text = "WinOptimizer";
 

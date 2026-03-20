@@ -45,6 +45,21 @@ public partial class SoftwareDetectionControl : UserControl
 
             lblCount.Text = $"{_detectedSoftware.Count} program(s) detected";
             _mainForm.SetStatus($"Scan complete. {_detectedSoftware.Count} program(s) found.");
+
+            if (_detectedSoftware.Count > 0)
+            {
+                var names = string.Join("\n", _detectedSoftware.Select(s => $"  - {s.DisplayName}"));
+                var prompt = MessageBox.Show(
+                    $"Found {_detectedSoftware.Count} banking/security program(s) that may slow down your system:\n\n{names}\n\nWould you like to uninstall all of them?",
+                    "Uninstall Detected Software",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (prompt == DialogResult.Yes)
+                {
+                    BtnUninstall_Click(sender, e);
+                }
+            }
         }
         catch (Exception ex)
         {

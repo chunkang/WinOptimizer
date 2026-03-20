@@ -59,11 +59,7 @@ public class SoftwareDetectorService
                 if (!MatchesKnownSoftware(displayName, publisher))
                     continue;
 
-                // Deduplicate by display name + registry path
-                var dedupeKey = $"{displayName}|{appKey.Name}";
-                if (!seen.Add(dedupeKey)) continue;
-
-                results.Add(new DetectedSoftware
+                var candidate = new DetectedSoftware
                 {
                     DisplayName = displayName,
                     Publisher = publisher,
@@ -72,13 +68,39 @@ public class SoftwareDetectorService
                     RegistryKeyPath = appKey.Name,
                     InstallLocation = appKey.GetValue("InstallLocation") as string,
                     DisplayVersion = appKey.GetValue("DisplayVersion") as string,
-                });
+                };
+
+                // Deduplicate by display name; keep the entry with the most info
+                if (seen.Contains(displayName))
+                {
+                    var existingIndex = results.FindIndex(r =>
+                        r.DisplayName.Equals(displayName, StringComparison.OrdinalIgnoreCase));
+                    if (existingIndex >= 0 && InfoScore(candidate) > InfoScore(results[existingIndex]))
+                    {
+                        results[existingIndex] = candidate;
+                    }
+                    continue;
+                }
+
+                seen.Add(displayName);
+                results.Add(candidate);
             }
             catch (Exception ex)
             {
                 LogHelper.Log($"Error reading subkey {subKeyName}: {ex.Message}");
             }
         }
+    }
+
+    private static int InfoScore(DetectedSoftware sw)
+    {
+        int score = 0;
+        if (!string.IsNullOrEmpty(sw.Publisher)) score++;
+        if (!string.IsNullOrEmpty(sw.DisplayVersion)) score++;
+        if (!string.IsNullOrEmpty(sw.InstallLocation)) score++;
+        if (!string.IsNullOrEmpty(sw.UninstallString)) score++;
+        if (!string.IsNullOrEmpty(sw.QuietUninstallString)) score++;
+        return score;
     }
 
     private static bool MatchesKnownSoftware(string displayName, string publisher)

@@ -9,9 +9,25 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>WinOptimizer</AssemblyName>
     <RootNamespace>WinOptimizer</RootNamespace>
-    <Version>1.0.0</Version>
     <Description>Windows system optimizer - detect banking software and optimize system settings</Description>
   </PropertyGroup>
+
+  <!-- Version from git tag: vMajor.Minor.0 tag + commit count as patch -->
+  <Target Name="SetGitVersion" BeforeTargets="GetAssemblyVersion;GenerateNuspec;BeforeCompile">
+    <Exec Command="git describe --tags --long --match &quot;v[0-9]*&quot; 2>nul || echo v1.0.0-0-g0000000"
+          ConsoleToMsBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitDescribe" />
+    </Exec>
+    <PropertyGroup>
+      <!-- Parse v1.0.0-5-gabcdef into 1.0.5 -->
+      <GitTag>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v(\d+\.\d+)\.\d+-(\d+)-g[0-9a-f]+').Groups[1].Value)</GitTag>
+      <GitCommits>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v\d+\.\d+\.\d+-(\d+)-g[0-9a-f]+').Groups[1].Value)</GitCommits>
+      <GitHash>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'g([0-9a-f]+)').Groups[1].Value)</GitHash>
+      <Version Condition="'$(GitTag)' != ''">$(GitTag).$(GitCommits)</Version>
+      <Version Condition="'$(GitTag)' == ''">1.0.0</Version>
+      <InformationalVersion>$(Version)+$(GitHash)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="System.Management" Version="8.0.0" />

@@ -48,6 +48,17 @@ src/WinOptimizer/
 - Software detection scans 4 registry uninstall paths (HKLM + HKCU, 64-bit + WOW6432Node) with both RegistryView.Registry64 and Registry32
 - Operations log to `%LOCALAPPDATA%\WinOptimizer\logs\winoptimizer.log`
 
+## Versioning
+
+- Version is derived automatically from **git tags** at build time (MSBuild target in `.csproj`)
+- Format: `Major.Minor.Patch` where Patch = number of commits since the last `vX.Y.0` tag
+- Example: tag `v0.1.0` + 3 commits → version `0.1.3`
+- The title bar displays `WinOptimizer v{version}` (hash is stripped from display)
+- To bump **major or minor** version, create a new tag: `git tag v1.0.0`
+- **Patch auto-increments** with every commit — no manual version edits needed
+- Never hardcode `<Version>` in `.csproj`; it is computed by the `SetGitVersion` target
+- **Rule: Every commit automatically increases the build (patch) number.** Do not manually edit version numbers. The patch version equals the number of commits since the last version tag.
+
 ## Key Domain Context
 
 - The banking/security software list is specific to South Korean financial institution requirements

@@ -9,18 +9,45 @@ Desktop.ini
 *~
 .vscode/
 .idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
-# Build
+# Build output
 bin/
 obj/
 out/
 build/
+publish/
+artifacts/
+
+# .NET artifacts
 *.exe
 *.dll
 *.pdb
 *.obj
 *.log
+*.cache
+*.nupkg
+*.snupkg
+
+# NuGet
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+launchSettings.json
 
 # Environment
 .env
 *.local
+
+# Claude Code
+.claude/
