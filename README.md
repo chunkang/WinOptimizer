@@ -1,9 +1,13 @@
 # WinOptimizer
 WinOptimizer is designed to help diagnose and resolve issues that may be slowing down your Microsoft Windows system. Its main purpose is to identify unnecessary or problematic software, optimize system settings, and help restore your PC to smoother, faster performance.
 
+# Download
+
+Download the latest `WinOptimizer.exe` from the [Releases](../../releases/latest) page — no build or install required. Just run it as Administrator.
+
 # System Requirements
 
-To compile and build WinOptimizer, you need:
+To compile and build WinOptimizer from source, you need:
 
 - **.NET 8.0 SDK** or later
 - **Windows 10/11** (Windows Forms requires a Windows environment)
