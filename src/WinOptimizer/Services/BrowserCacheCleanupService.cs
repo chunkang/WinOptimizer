@@ -20,7 +20,7 @@ public class BrowserCacheCleanupService
             @"Google\Chrome\User Data\Default\Code Cache",
             @"Google\Chrome\User Data\Default\Service Worker\CacheStorage",
         }),
-        ("Mozilla Firefox", "firefox", new[]
+        ("Mozilla Firefox", "firefox", new string[]
         {
             // Firefox uses profile-based paths; handled separately
         }),

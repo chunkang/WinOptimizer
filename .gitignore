@@ -14,6 +14,9 @@ Desktop.ini
 *.userosscache
 *.sln.docstates
 
+# Build counter
+.buildnumber
+
 # Build output
 bin/
 obj/

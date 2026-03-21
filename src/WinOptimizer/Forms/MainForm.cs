@@ -14,8 +14,15 @@ public partial class MainForm : Form
             if (info != null)
             {
                 var infoVer = info.InformationalVersion;
-                var plusIndex = infoVer.IndexOf('+');
-                return plusIndex >= 0 ? infoVer[..plusIndex] : infoVer;
+                // Show build number: "0.1.4+build.2" → "0.1.4 (build 2)"
+                var plusIndex = infoVer.IndexOf("+build.");
+                if (plusIndex >= 0)
+                {
+                    var semver = infoVer[..plusIndex];
+                    var buildNum = infoVer[(plusIndex + 7)..];
+                    return $"{semver} (build {buildNum})";
+                }
+                return infoVer;
             }
             var ver = asm.GetName().Version;
             return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "1.0.0";

@@ -11,6 +11,7 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <RootNamespace>WinOptimizer</RootNamespace>
     <Description>Windows system optimizer - detect banking software and optimize system settings</Description>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <!-- Version from git tag: vMajor.Minor.0 tag + commit count as patch -->
@@ -27,9 +28,10 @@
       <GitHash>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'g([0-9a-f]+)').Groups[1].Value)</GitHash>
       <Version Condition="'$(GitTag)' != ''">$(GitTag).$(GitCommits)</Version>
       <Version Condition="'$(GitTag)' == ''">0.1.0</Version>
-      <AssemblyVersion>$(Version).0</AssemblyVersion>
-      <FileVersion>$(Version).0</FileVersion>
-      <InformationalVersion>$(Version)</InformationalVersion>
+      <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
+      <AssemblyVersion>$(Version).$(BuildNumber)</AssemblyVersion>
+      <FileVersion>$(Version).$(BuildNumber)</FileVersion>
+      <InformationalVersion>$(Version)+build.$(BuildNumber)</InformationalVersion>
     </PropertyGroup>
     <Message Importance="high" Text="Git version: $(Version) (from $(GitDescribe))" />
   </Target>
