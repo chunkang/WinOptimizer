@@ -9,6 +9,7 @@ partial class MainForm
     private TabPage tabSoftware;
     private TabPage tabSystem;
     private TabPage tabNetwork;
+    private TabPage tabBrowserCache;
     private StatusStrip statusStrip;
     private ToolStripStatusLabel statusLabel;
     private ToolStripProgressBar progressBar;
@@ -30,6 +31,7 @@ partial class MainForm
         tabSoftware = new TabPage();
         tabSystem = new TabPage();
         tabNetwork = new TabPage();
+        tabBrowserCache = new TabPage();
         statusStrip = new StatusStrip();
         statusLabel = new ToolStripStatusLabel();
         progressBar = new ToolStripProgressBar();
@@ -39,6 +41,7 @@ partial class MainForm
         tabControl.TabPages.Add(tabSoftware);
         tabControl.TabPages.Add(tabSystem);
         tabControl.TabPages.Add(tabNetwork);
+        tabControl.TabPages.Add(tabBrowserCache);
 
         // tabSoftware
         tabSoftware.Text = "Security Software";
@@ -60,6 +63,13 @@ partial class MainForm
         var networkControl = new NetworkOptimizationControl(this);
         networkControl.Dock = DockStyle.Fill;
         tabNetwork.Controls.Add(networkControl);
+
+        // tabBrowserCache
+        tabBrowserCache.Text = "Browser Cache";
+        tabBrowserCache.Padding = new Padding(8);
+        var browserCacheControl = new BrowserCacheCleanupControl(this);
+        browserCacheControl.Dock = DockStyle.Fill;
+        tabBrowserCache.Controls.Add(browserCacheControl);
 
         // statusStrip
         statusLabel.Spring = true;
