@@ -17,11 +17,12 @@ public partial class SystemOptimizationControl : UserControl
         LoadSettings();
     }
 
-    private void LoadSettings()
+    public int LoadSettings()
     {
         checkedListBox.Items.Clear();
         _settings = _optimizer.GetSettings();
 
+        var unappliedCount = 0;
         foreach (var setting in _settings)
         {
             var label = setting.IsApplied
@@ -29,7 +30,24 @@ public partial class SystemOptimizationControl : UserControl
                 : setting.Name;
             var index = checkedListBox.Items.Add(label);
             checkedListBox.SetItemChecked(index, !setting.IsApplied);
+            if (!setting.IsApplied) unappliedCount++;
         }
+
+        return unappliedCount;
+    }
+
+    public List<OptimizationSetting> GetUnappliedSettings() =>
+        _settings.Where(s => !s.IsApplied).ToList();
+
+    public (int applied, List<string> errors) ApplyAll()
+    {
+        var unapplied = GetUnappliedSettings();
+        if (unapplied.Count == 0)
+            return (0, new List<string>());
+
+        var result = _optimizer.ApplySettings(unapplied);
+        LoadSettings();
+        return result;
     }
 
     private void BtnApply_Click(object? sender, EventArgs e)

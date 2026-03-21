@@ -5,6 +5,9 @@ namespace WinOptimizer.Forms;
 partial class MainForm
 {
     private System.ComponentModel.IContainer components = null;
+    private Panel topPanel;
+    private Button btnScanAll;
+    private Button btnFixAll;
     private TabControl tabControl;
     private TabPage tabSoftware;
     private TabPage tabSystem;
@@ -13,6 +16,10 @@ partial class MainForm
     private StatusStrip statusStrip;
     private ToolStripStatusLabel statusLabel;
     private ToolStripProgressBar progressBar;
+    private SoftwareDetectionControl softwareControl;
+    private SystemOptimizationControl systemControl;
+    private NetworkOptimizationControl networkControl;
+    private BrowserCacheCleanupControl browserCacheControl;
 
     protected override void Dispose(bool disposing)
     {
@@ -27,6 +34,9 @@ partial class MainForm
     {
         components = new System.ComponentModel.Container();
 
+        topPanel = new Panel();
+        btnScanAll = new Button();
+        btnFixAll = new Button();
         tabControl = new TabControl();
         tabSoftware = new TabPage();
         tabSystem = new TabPage();
@@ -35,6 +45,26 @@ partial class MainForm
         statusStrip = new StatusStrip();
         statusLabel = new ToolStripStatusLabel();
         progressBar = new ToolStripProgressBar();
+
+        // topPanel
+        topPanel.Dock = DockStyle.Top;
+        topPanel.Height = 45;
+        topPanel.Padding = new Padding(8, 8, 8, 0);
+
+        // btnScanAll
+        btnScanAll.Text = "Scan All";
+        btnScanAll.Size = new Size(100, 30);
+        btnScanAll.Location = new Point(8, 8);
+        btnScanAll.Click += BtnScanAll_Click;
+        topPanel.Controls.Add(btnScanAll);
+
+        // btnFixAll
+        btnFixAll.Text = "Fix All";
+        btnFixAll.Size = new Size(100, 30);
+        btnFixAll.Location = new Point(116, 8);
+        btnFixAll.Enabled = false;
+        btnFixAll.Click += BtnFixAll_Click;
+        topPanel.Controls.Add(btnFixAll);
 
         // tabControl
         tabControl.Dock = DockStyle.Fill;
@@ -46,28 +76,28 @@ partial class MainForm
         // tabSoftware
         tabSoftware.Text = "Security Software";
         tabSoftware.Padding = new Padding(8);
-        var softwareControl = new SoftwareDetectionControl(this);
+        softwareControl = new SoftwareDetectionControl(this);
         softwareControl.Dock = DockStyle.Fill;
         tabSoftware.Controls.Add(softwareControl);
 
         // tabSystem
         tabSystem.Text = "System Optimization";
         tabSystem.Padding = new Padding(8);
-        var systemControl = new SystemOptimizationControl(this);
+        systemControl = new SystemOptimizationControl(this);
         systemControl.Dock = DockStyle.Fill;
         tabSystem.Controls.Add(systemControl);
 
         // tabNetwork
         tabNetwork.Text = "Network Optimization";
         tabNetwork.Padding = new Padding(8);
-        var networkControl = new NetworkOptimizationControl(this);
+        networkControl = new NetworkOptimizationControl(this);
         networkControl.Dock = DockStyle.Fill;
         tabNetwork.Controls.Add(networkControl);
 
         // tabBrowserCache
         tabBrowserCache.Text = "Browser Cache";
         tabBrowserCache.Padding = new Padding(8);
-        var browserCacheControl = new BrowserCacheCleanupControl(this);
+        browserCacheControl = new BrowserCacheCleanupControl(this);
         browserCacheControl.Dock = DockStyle.Fill;
         tabBrowserCache.Controls.Add(browserCacheControl);
 
@@ -90,6 +120,7 @@ partial class MainForm
         Text = "WinOptimizer";
 
         Controls.Add(tabControl);
+        Controls.Add(topPanel);
         Controls.Add(statusStrip);
     }
 }

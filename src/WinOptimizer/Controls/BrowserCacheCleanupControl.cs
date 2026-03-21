@@ -17,7 +17,7 @@ public partial class BrowserCacheCleanupControl : UserControl
         ScanBrowsers();
     }
 
-    private void ScanBrowsers()
+    public (int count, long totalBytes) ScanBrowsers()
     {
         checkedListBox.Items.Clear();
         _browsers = _service.DetectBrowsers();
@@ -26,7 +26,7 @@ public partial class BrowserCacheCleanupControl : UserControl
         {
             checkedListBox.Items.Add("No browser caches detected.");
             btnClean.Enabled = false;
-            return;
+            return (0, 0);
         }
 
         btnClean.Enabled = true;
@@ -37,13 +37,31 @@ public partial class BrowserCacheCleanupControl : UserControl
             var index = checkedListBox.Items.Add(label);
             checkedListBox.SetItemChecked(index, !browser.IsRunning);
         }
+
+        return (_browsers.Count, _browsers.Sum(b => b.CacheSizeBytes));
     }
 
     private void BtnScan_Click(object? sender, EventArgs e)
     {
         _mainForm.SetStatus("Scanning browser caches...");
+        var (count, totalBytes) = ScanBrowsers();
+        _mainForm.SetStatus($"Found {count} browser(s) with cache data.");
+        var badge = totalBytes > 0 ? BrowserCacheCleanupService.FormatBytes(totalBytes) : null;
+        _mainForm.UpdateTabBadge(3, badge);
+    }
+
+    public List<BrowserCacheInfo> GetCleanableBrowsers() =>
+        _browsers.Where(b => !b.IsRunning && b.CacheSizeBytes > 0).ToList();
+
+    public (int cleaned, long freedBytes, List<string> errors) CleanAll()
+    {
+        var cleanable = GetCleanableBrowsers();
+        if (cleanable.Count == 0)
+            return (0, 0, new List<string>());
+
+        var result = _service.CleanCache(cleanable);
         ScanBrowsers();
-        _mainForm.SetStatus($"Found {_browsers.Count} browser(s) with cache data.");
+        return result;
     }
 
     private void BtnClean_Click(object? sender, EventArgs e)

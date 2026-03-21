@@ -14,7 +14,7 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
-  <!-- Version from git tag: vMajor.Minor.0 tag + commit count as patch -->
+  <!-- Version from git tag: vMajor.Minor.Patch tag + commit count added to patch -->
   <Target Name="SetGitVersion" BeforeTargets="PrepareForBuild;GenerateAssemblyInfo;GetAssemblyVersion">
     <Exec Command="git describe --tags --long --match &quot;v[0-9]*&quot; 2>&amp;1"
           ConsoleToMsBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
@@ -22,12 +22,14 @@
     </Exec>
     <PropertyGroup>
       <GitDescribe Condition="!$(GitDescribe.StartsWith('v'))">v0.1.0-0-g0000000</GitDescribe>
-      <!-- Parse v0.1.0-3-gabcdef into Major.Minor=0.1 Commits=3 -->
-      <GitTag>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v(\d+\.\d+)\.\d+-(\d+)-g[0-9a-f]+').Groups[1].Value)</GitTag>
+      <!-- Parse v0.1.5-3-gabcdef into Major.Minor=0.1 TagPatch=5 Commits=3 → 0.1.8 -->
+      <GitMajorMinor>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v(\d+\.\d+)\.\d+-\d+-g[0-9a-f]+').Groups[1].Value)</GitMajorMinor>
+      <GitTagPatch>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v\d+\.\d+\.(\d+)-\d+-g[0-9a-f]+').Groups[1].Value)</GitTagPatch>
       <GitCommits>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'v\d+\.\d+\.\d+-(\d+)-g[0-9a-f]+').Groups[1].Value)</GitCommits>
       <GitHash>$([System.Text.RegularExpressions.Regex]::Match($(GitDescribe), 'g([0-9a-f]+)').Groups[1].Value)</GitHash>
-      <Version Condition="'$(GitTag)' != ''">$(GitTag).$(GitCommits)</Version>
-      <Version Condition="'$(GitTag)' == ''">0.1.0</Version>
+      <GitPatch Condition="'$(GitTagPatch)' != '' and '$(GitCommits)' != ''">$([MSBuild]::Add($(GitTagPatch), $(GitCommits)))</GitPatch>
+      <Version Condition="'$(GitMajorMinor)' != ''">$(GitMajorMinor).$(GitPatch)</Version>
+      <Version Condition="'$(GitMajorMinor)' == ''">0.1.0</Version>
       <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
       <AssemblyVersion>$(Version).$(BuildNumber)</AssemblyVersion>
       <FileVersion>$(Version).$(BuildNumber)</FileVersion>

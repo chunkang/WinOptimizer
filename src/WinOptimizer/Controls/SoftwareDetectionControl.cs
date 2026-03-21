@@ -17,7 +17,7 @@ public partial class SoftwareDetectionControl : UserControl
         InitializeComponent();
     }
 
-    private async void BtnScan_Click(object? sender, EventArgs e)
+    public async Task<int> ScanAsync()
     {
         btnScan.Enabled = false;
         btnUninstall.Enabled = false;
@@ -45,21 +45,6 @@ public partial class SoftwareDetectionControl : UserControl
 
             lblCount.Text = $"{_detectedSoftware.Count} program(s) detected";
             _mainForm.SetStatus($"Scan complete. {_detectedSoftware.Count} program(s) found.");
-
-            if (_detectedSoftware.Count > 0)
-            {
-                var names = string.Join("\n", _detectedSoftware.Select(s => $"  - {s.DisplayName}"));
-                var prompt = MessageBox.Show(
-                    $"Found {_detectedSoftware.Count} banking/security program(s) that may slow down your system:\n\n{names}\n\nWould you like to uninstall all of them?",
-                    "Uninstall Detected Software",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (prompt == DialogResult.Yes)
-                {
-                    BtnUninstall_Click(sender, e);
-                }
-            }
         }
         catch (Exception ex)
         {
@@ -73,7 +58,46 @@ public partial class SoftwareDetectionControl : UserControl
             btnUninstall.Enabled = _detectedSoftware.Count > 0;
             _mainForm.SetProgress(100);
         }
+
+        return _detectedSoftware.Count;
     }
+
+    private async void BtnScan_Click(object? sender, EventArgs e)
+    {
+        var count = await ScanAsync();
+        _mainForm.UpdateTabBadge(0, count > 0 ? $"{count} found" : null);
+
+        if (count > 0)
+        {
+            var names = string.Join("\n", _detectedSoftware.Select(s => $"  - {s.DisplayName}"));
+            var prompt = MessageBox.Show(
+                $"Found {count} banking/security program(s) that may slow down your system:\n\n{names}\n\nWould you like to uninstall all of them?",
+                "Uninstall Detected Software",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (prompt == DialogResult.Yes)
+            {
+                BtnUninstall_Click(sender, e);
+            }
+        }
+    }
+
+    public async Task<(int succeeded, int failed, List<string> errors)> UninstallAllAsync(IProgress<string> progress)
+    {
+        if (_detectedSoftware.Count == 0)
+            return (0, 0, new List<string>());
+
+        btnScan.Enabled = false;
+        btnUninstall.Enabled = false;
+
+        var result = await _uninstaller.UninstallSelected(_detectedSoftware, progress);
+
+        btnScan.Enabled = true;
+        return result;
+    }
+
+    public List<DetectedSoftware> GetDetectedSoftware() => _detectedSoftware;
 
     private void BtnSelectAll_Click(object? sender, EventArgs e)
     {
