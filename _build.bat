@@ -49,6 +49,14 @@ set "PATH=%ProgramFiles%\Git\cmd;%PATH%"
 echo Prerequisites OK.
 echo.
 
+:: Kill any running instance before cleaning
+tasklist /fi "imagename eq WinOptimizer.exe" 2>nul | findstr /i "WinOptimizer.exe" >nul 2>&1
+if not errorlevel 1 (
+    echo Stopping running WinOptimizer...
+    taskkill /f /im WinOptimizer.exe >nul 2>&1
+    timeout /t 2 /nobreak >nul
+)
+
 :: Clean previous build output
 echo === Cleaning previous build output ===
 if exist src\WinOptimizer\bin rd /s /q src\WinOptimizer\bin
