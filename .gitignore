@@ -17,6 +17,10 @@ Desktop.ini
 # Build counter
 .buildnumber
 
+# Release archives
+WinOptimizer-*-source.zip
+WinOptimizer-*-win-x64.zip
+
 # Build output
 bin/
 obj/
