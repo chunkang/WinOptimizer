@@ -5,7 +5,7 @@ namespace WinOptimizer.Forms;
 partial class MainForm
 {
     private System.ComponentModel.IContainer components = null;
-    private Panel topPanel;
+    private Panel bottomButtonPanel;
     private Button btnScanAll;
     private Button btnFixAll;
     private TabControl tabControl;
@@ -34,7 +34,7 @@ partial class MainForm
     {
         components = new System.ComponentModel.Container();
 
-        topPanel = new Panel();
+        bottomButtonPanel = new Panel();
         btnScanAll = new Button();
         btnFixAll = new Button();
         tabControl = new TabControl();
@@ -46,17 +46,17 @@ partial class MainForm
         statusLabel = new ToolStripStatusLabel();
         progressBar = new ToolStripProgressBar();
 
-        // topPanel
-        topPanel.Dock = DockStyle.Top;
-        topPanel.Height = 45;
-        topPanel.Padding = new Padding(8, 8, 8, 0);
+        // bottomButtonPanel
+        bottomButtonPanel.Dock = DockStyle.Bottom;
+        bottomButtonPanel.Height = 45;
+        bottomButtonPanel.Padding = new Padding(8, 4, 8, 8);
 
         // btnScanAll
         btnScanAll.Text = "Scan All";
         btnScanAll.Size = new Size(100, 30);
         btnScanAll.Location = new Point(8, 8);
         btnScanAll.Click += BtnScanAll_Click;
-        topPanel.Controls.Add(btnScanAll);
+        bottomButtonPanel.Controls.Add(btnScanAll);
 
         // btnFixAll
         btnFixAll.Text = "Fix All";
@@ -64,7 +64,7 @@ partial class MainForm
         btnFixAll.Location = new Point(116, 8);
         btnFixAll.Enabled = false;
         btnFixAll.Click += BtnFixAll_Click;
-        topPanel.Controls.Add(btnFixAll);
+        bottomButtonPanel.Controls.Add(btnFixAll);
 
         // tabControl
         tabControl.Dock = DockStyle.Fill;
@@ -120,7 +120,7 @@ partial class MainForm
         Text = "WinOptimizer";
 
         Controls.Add(tabControl);
-        Controls.Add(topPanel);
+        Controls.Add(bottomButtonPanel);
         Controls.Add(statusStrip);
     }
 }
