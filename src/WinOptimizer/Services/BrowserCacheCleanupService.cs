@@ -6,35 +6,22 @@ using WinOptimizer.Models;
 
 public class BrowserCacheCleanupService
 {
-    private static readonly (string Name, string ProcessName, string[] RelativePaths)[] Browsers =
+    // Chromium-based browsers: (Name, ProcessName, UserDataRelativePath, UseRoamingAppData)
+    private static readonly (string Name, string ProcessName, string UserDataPath, bool UseRoaming)[] ChromiumBrowsers =
     {
-        ("Microsoft Edge", "msedge", new[]
-        {
-            @"Microsoft\Edge\User Data\Default\Cache",
-            @"Microsoft\Edge\User Data\Default\Code Cache",
-            @"Microsoft\Edge\User Data\Default\Service Worker\CacheStorage",
-        }),
-        ("Google Chrome", "chrome", new[]
-        {
-            @"Google\Chrome\User Data\Default\Cache",
-            @"Google\Chrome\User Data\Default\Code Cache",
-            @"Google\Chrome\User Data\Default\Service Worker\CacheStorage",
-        }),
-        ("Mozilla Firefox", "firefox", new string[]
-        {
-            // Firefox uses profile-based paths; handled separately
-        }),
-        ("Opera", "opera", new[]
-        {
-            @"Opera Software\Opera Stable\Cache",
-            @"Opera Software\Opera Stable\Code Cache",
-        }),
-        ("Brave", "brave", new[]
-        {
-            @"BraveSoftware\Brave-Browser\User Data\Default\Cache",
-            @"BraveSoftware\Brave-Browser\User Data\Default\Code Cache",
-            @"BraveSoftware\Brave-Browser\User Data\Default\Service Worker\CacheStorage",
-        }),
+        ("Microsoft Edge", "msedge", @"Microsoft\Edge\User Data", false),
+        ("Google Chrome", "chrome", @"Google\Chrome\User Data", false),
+        ("Brave", "brave", @"BraveSoftware\Brave-Browser\User Data", false),
+        ("Opera", "opera", @"Opera Software\Opera Stable", true),
+    };
+
+    // Cache subdirectories to scan within each profile
+    private static readonly string[] ChromiumCacheSubDirs =
+    {
+        @"Cache\Cache_Data",
+        "Cache",
+        "Code Cache",
+        @"Service Worker\CacheStorage",
     };
 
     public List<BrowserCacheInfo> DetectBrowsers()
@@ -43,14 +30,14 @@ public class BrowserCacheCleanupService
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-        foreach (var (name, processName, relativePaths) in Browsers)
+        // Detect Chromium-based browsers
+        foreach (var (name, processName, userDataPath, useRoaming) in ChromiumBrowsers)
         {
-            var cachePaths = name == "Mozilla Firefox"
-                ? GetFirefoxCachePaths(localAppData, roamingAppData)
-                : relativePaths.Select(p =>
-                    name == "Opera"
-                        ? Path.Combine(roamingAppData, p)
-                        : Path.Combine(localAppData, p)).ToList();
+            var baseDir = useRoaming
+                ? Path.Combine(roamingAppData, userDataPath)
+                : Path.Combine(localAppData, userDataPath);
+
+            var cachePaths = GetChromiumCachePaths(baseDir, name == "Opera");
 
             var totalSize = 0L;
             var anyExists = false;
@@ -77,8 +64,64 @@ public class BrowserCacheCleanupService
             });
         }
 
+        // Detect Firefox
+        var firefoxPaths = GetFirefoxCachePaths(localAppData, roamingAppData);
+        if (firefoxPaths.Any(Directory.Exists))
+        {
+            var totalSize = firefoxPaths.Where(Directory.Exists).Sum(p => GetDirectorySize(p));
+            var isRunning = Process.GetProcessesByName("firefox").Length > 0;
+
+            results.Add(new BrowserCacheInfo
+            {
+                BrowserName = "Mozilla Firefox",
+                CachePath = string.Join(";", firefoxPaths.Where(Directory.Exists)),
+                CacheSizeBytes = totalSize,
+                IsInstalled = true,
+                IsRunning = isRunning,
+            });
+        }
+
         results.Sort((a, b) => string.Compare(a.BrowserName, b.BrowserName, StringComparison.OrdinalIgnoreCase));
         return results;
+    }
+
+    private static List<string> GetChromiumCachePaths(string baseDir, bool isFlat)
+    {
+        var paths = new List<string>();
+
+        if (!Directory.Exists(baseDir)) return paths;
+
+        if (isFlat)
+        {
+            // Opera stores cache directly under the base dir (no profile subdirectories)
+            foreach (var subDir in ChromiumCacheSubDirs)
+                paths.Add(Path.Combine(baseDir, subDir));
+        }
+        else
+        {
+            // Scan all profile directories: Default, Profile 1, Profile 2, Guest Profile, System Profile, etc.
+            try
+            {
+                foreach (var profileDir in Directory.GetDirectories(baseDir))
+                {
+                    var dirName = Path.GetFileName(profileDir);
+                    if (dirName.Equals("Default", StringComparison.OrdinalIgnoreCase) ||
+                        dirName.StartsWith("Profile ", StringComparison.OrdinalIgnoreCase) ||
+                        dirName.Equals("Guest Profile", StringComparison.OrdinalIgnoreCase) ||
+                        dirName.Equals("System Profile", StringComparison.OrdinalIgnoreCase))
+                    {
+                        foreach (var subDir in ChromiumCacheSubDirs)
+                            paths.Add(Path.Combine(profileDir, subDir));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Log($"Error scanning profiles in {baseDir}: {ex.Message}");
+            }
+        }
+
+        return paths;
     }
 
     public (int cleaned, long freedBytes, List<string> errors) CleanCache(IEnumerable<BrowserCacheInfo> browsers)
