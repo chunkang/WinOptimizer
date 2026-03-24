@@ -59,6 +59,10 @@ src/WinOptimizer/
 - Never hardcode `<Version>` in `.csproj`; it is computed by the `SetGitVersion` target
 - **Rule: Every commit automatically increases the build (patch) number.** Do not manually edit version numbers. The patch version equals the number of commits since the last version tag.
 
+## Actions
+
+- **Update README.md on code changes**: Whenever code is modified (new features, removed features, renamed components, changed behavior, etc.), update `README.md` to reflect those changes. Keep the README accurate and in sync with the current state of the codebase.
+
 ## Key Domain Context
 
 - The banking/security software list is specific to South Korean financial institution requirements

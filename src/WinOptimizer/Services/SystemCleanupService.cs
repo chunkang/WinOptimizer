@@ -47,6 +47,8 @@ public class SystemCleanupService
 
             try
             {
+                var sizeBefore = task.SizeBytes;
+
                 switch (task.Type)
                 {
                     case CleanupType.RecycleBin:
@@ -58,9 +60,16 @@ public class SystemCleanupService
                         break;
                 }
 
-                freedBytes += task.SizeBytes;
+                // Measure actual freed space by re-scanning
+                var sizeAfter = task.Type == CleanupType.RecycleBin
+                    ? GetRecycleBinSize()
+                    : GetTempDirectorySize(task.Type);
+                var actualFreed = sizeBefore - sizeAfter;
+                if (actualFreed > 0)
+                    freedBytes += actualFreed;
+
                 cleaned++;
-                LogHelper.Log($"Cleaned: {task.Name} ({task.SizeBytes} bytes)");
+                LogHelper.Log($"Cleaned: {task.Name} (freed {actualFreed} of {sizeBefore} bytes, {sizeAfter} bytes remain)");
             }
             catch (Exception ex)
             {
@@ -141,40 +150,109 @@ public class SystemCleanupService
 
         var dir = new DirectoryInfo(path);
 
-        foreach (var file in dir.EnumerateFiles("*", SearchOption.AllDirectories))
-        {
-            try { file.Delete(); }
-            catch { /* Skip locked files */ }
-        }
+        // Delete files — use TopDirectoryOnly per directory to avoid
+        // UnauthorizedAccessException aborting the entire enumeration
+        DeleteFilesRecursive(dir);
 
-        foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.AllDirectories)
-                     .OrderByDescending(d => d.FullName.Length))
-        {
-            try
-            {
-                if (!subDir.EnumerateFileSystemInfos().Any())
-                    subDir.Delete();
-            }
-            catch { /* Skip locked directories */ }
-        }
+        // Remove empty directories deepest-first
+        DeleteEmptyDirectoriesRecursive(dir);
     }
 
-    private static long GetDirectorySize(string path)
+    private static void DeleteFilesRecursive(DirectoryInfo dir)
+    {
+        // Delete files in this directory
+        try
+        {
+            foreach (var file in dir.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
+            {
+                try { file.Delete(); }
+                catch { /* Skip locked/in-use files */ }
+            }
+        }
+        catch { /* Skip inaccessible directory */ }
+
+        // Recurse into subdirectories individually
+        try
+        {
+            foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
+            {
+                DeleteFilesRecursive(subDir);
+            }
+        }
+        catch { /* Skip inaccessible directory */ }
+    }
+
+    private static void DeleteEmptyDirectoriesRecursive(DirectoryInfo dir)
     {
         try
         {
-            return new DirectoryInfo(path)
-                .EnumerateFiles("*", SearchOption.AllDirectories)
-                .Sum(f =>
+            foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
+            {
+                DeleteEmptyDirectoriesRecursive(subDir);
+
+                try
                 {
-                    try { return f.Length; }
-                    catch { return 0L; }
-                });
+                    if (!subDir.EnumerateFileSystemInfos().Any())
+                        subDir.Delete();
+                }
+                catch { /* Skip locked directories */ }
+            }
+        }
+        catch { /* Skip inaccessible directory */ }
+    }
+
+    private static long GetRecycleBinSize()
+    {
+        try
+        {
+            var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
+            var hr = SHQueryRecycleBin(null, ref info);
+            return hr == 0 ? info.i64Size : 0;
         }
         catch
         {
             return 0;
         }
+    }
+
+    private static long GetTempDirectorySize(CleanupType type)
+    {
+        var path = type == CleanupType.WindowsTemp
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp")
+            : Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
+        return GetDirectorySize(path);
+    }
+
+    private static long GetDirectorySize(string path)
+    {
+        if (!Directory.Exists(path)) return 0;
+        return GetDirectorySizeRecursive(new DirectoryInfo(path));
+    }
+
+    private static long GetDirectorySizeRecursive(DirectoryInfo dir)
+    {
+        var size = 0L;
+
+        try
+        {
+            foreach (var file in dir.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
+            {
+                try { size += file.Length; }
+                catch { /* Skip inaccessible files */ }
+            }
+        }
+        catch { /* Skip inaccessible directory */ }
+
+        try
+        {
+            foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
+            {
+                size += GetDirectorySizeRecursive(subDir);
+            }
+        }
+        catch { /* Skip inaccessible directory */ }
+
+        return size;
     }
 
     public static string FormatBytes(long bytes) => BrowserCacheCleanupService.FormatBytes(bytes);

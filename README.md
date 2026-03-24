@@ -33,9 +33,11 @@ Detects security utilities installed for banking processes and offers to remove 
 | Hancom | GPKI Tool |
 | Others | KTBNet, AnySign4PC, AnySign4PC EX, AnyBank, CrossCert SecureTool, EpageSAFER, SCGuard, SsenStone, WESS SignEx, Nexess NexGuard, McAfee Secure Bank, TrendMicro PC Web Security |
 
-### 2. System Optimization
+### 2. System Optimization & Disk Cleanup
 
-Optimizes Windows system settings via registry tweaks:
+Optimizes Windows system settings via registry tweaks and cleans up temporary files:
+
+**Registry optimizations:**
 
 - Disabling unnecessary startup processes
 - Disabling telemetry and data collection
@@ -53,7 +55,15 @@ Optimizes Windows system settings via registry tweaks:
 | Speed up menus | `HKCU\Control Panel\Desktop` → `MenuShowDelay` | `0` |
 | Disable startup programs | `HKCU\...\CurrentVersion\Run` and `HKLM\...\CurrentVersion\Run` | Remove entries |
 
-> **Note:** Always back up your registry before making changes. WinOptimizer prompts you to create a restore point before applying optimizations.
+**Disk cleanup tasks:**
+
+| Task | Location | Description |
+|------|----------|-------------|
+| Empty Recycle Bin | System-wide | Permanently removes all items in the Recycle Bin |
+| Clean Windows Temp | `C:\Windows\Temp` | Deletes system-level temporary files |
+| Clean User Temp | `%LOCALAPPDATA%\Temp` | Deletes user-level temporary files |
+
+> **Note:** Locked or in-use files are safely skipped during cleanup. Always back up your registry before making changes. WinOptimizer prompts you to create a restore point before applying optimizations.
 
 ### 3. Browser Cache Cleanup
 
