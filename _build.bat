@@ -1,3 +1,9 @@
+REM ============================================================================
+REM WinOptimizer — AGPL-3.0 + Commons Clause
+REM Author:  Chun Kang <ck@ckii.com>
+REM Modified: Claude (AI-assisted) (2026-03-24)
+REM ============================================================================
+
 @echo off
 setlocal
 

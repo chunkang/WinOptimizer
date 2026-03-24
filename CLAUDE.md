@@ -61,6 +61,28 @@ src/WinOptimizer/
 - Never hardcode `<Version>` in `.csproj`; it is computed by the `SetGitVersion` target
 - **Rule: Every commit automatically increases the build (patch) number.** Do not manually edit version numbers. The patch version equals the number of commits since the last version tag.
 
+## License
+
+This project is licensed under **AGPL-3.0 + Commons Clause**.
+
+## File Headers
+
+Every `.cs` file must include a comment header at the top. When creating or modifying a file, add or update the header using the following format:
+
+```csharp
+// ============================================================================
+// WinOptimizer — AGPL-3.0 + Commons Clause
+// Author:  <name> <email>
+// Modified: <name> <email> (<YYYY-MM-DD>)
+// ============================================================================
+```
+
+- **Author** is set once when the file is first created and never changed.
+- **Modified** is updated every time the file is edited, with the modifier's name and date.
+- When Claude Code creates a file, use `Author: Claude (AI-assisted)`.
+- When Claude Code modifies an existing file that already has an Author line, keep the original Author and update the Modified line to `Modified: Claude (AI-assisted) (<YYYY-MM-DD>)`.
+- If an existing file has no header yet, add one — set Author to the git blame first-commit author if known, otherwise `Unknown`.
+
 ## Actions
 
 - **Update README.md on code changes**: Whenever code is modified (new features, removed features, renamed components, changed behavior, etc.), update `README.md` to reflect those changes. Keep the README accurate and in sync with the current state of the codebase.

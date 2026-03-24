@@ -1,3 +1,9 @@
+// ============================================================================
+// WinOptimizer — AGPL-3.0 + Commons Clause
+// Author:  Chun Kang <kurapa@kurapa.com>
+// Modified: Claude (AI-assisted) (2026-03-24)
+// ============================================================================
+
 namespace WinOptimizer.Forms;
 
 using System.Reflection;
@@ -63,30 +69,37 @@ public partial class MainForm : Form
     private async Task ScanAllAsync()
     {
         sidebar.BtnScanAll.Enabled = false;
-        SetStatus("Scanning all...");
-        SetProgress(25);
+        sidebar.BtnFixAll.Enabled = false;
+        SetStatus("Scanning security software...");
+        SetProgress(5);
 
-        // Security Software (async)
+        // Security Software
         var swCount = await softwareControl.ScanAsync();
         UpdateTabBadge(0, swCount > 0 ? $"{swCount} found" : null);
         dashboardControl.UpdateSecurityCard(swCount);
-
-        SetProgress(50);
+        SetProgress(30);
 
         // System Optimization
-        var sysUnapplied = systemControl.LoadSettings();
+        SetStatus("Scanning system settings...");
+        var sysUnapplied = await Task.Run(() => systemControl.LoadSettingsData());
+        Invoke(() => systemControl.PopulateUI());
         UpdateTabBadge(1, sysUnapplied > 0 ? $"{sysUnapplied} available" : null);
         dashboardControl.UpdateSystemCard(sysUnapplied);
-
-        SetProgress(75);
+        SetProgress(50);
 
         // Network Optimization
-        var netUnapplied = networkControl.LoadSettings();
+        SetStatus("Scanning network settings...");
+        var netUnapplied = await Task.Run(() => networkControl.LoadSettingsData());
+        Invoke(() => networkControl.PopulateUI());
         UpdateTabBadge(2, netUnapplied > 0 ? $"{netUnapplied} available" : null);
         dashboardControl.UpdateNetworkCard(netUnapplied);
+        SetProgress(75);
 
         // Browser Cache
-        var (_, totalBytes) = browserCacheControl.ScanBrowsers();
+        SetStatus("Scanning browser caches...");
+        var browsers = await Task.Run(() => browserCacheControl.DetectBrowserData());
+        Invoke(() => browserCacheControl.PopulateUI());
+        var totalBytes = browsers.Sum(b => b.CacheSizeBytes);
         UpdateTabBadge(3, totalBytes > 0
             ? BrowserCacheCleanupService.FormatBytes(totalBytes)
             : null);
@@ -97,7 +110,6 @@ public partial class MainForm : Form
         dashboardControl.SetLastScanTime();
         sidebar.BtnScanAll.Enabled = true;
 
-        // Enable Fix All if there's anything actionable
         var hasWork = swCount > 0 || sysUnapplied > 0 || netUnapplied > 0 || totalBytes > 0;
         sidebar.BtnFixAll.Enabled = hasWork;
     }
@@ -163,7 +175,7 @@ public partial class MainForm : Form
         if (swList.Count > 0)
         {
             SetStatus("Uninstalling security software...");
-            SetProgress(20);
+            SetProgress(10);
             var progress = new Progress<string>(msg => SetStatus(msg));
             var (succeeded, failed, errors) = await softwareControl.UninstallAllAsync(progress);
             results.AppendLine($"Software: {succeeded} uninstalled, {failed} failed");
@@ -174,8 +186,8 @@ public partial class MainForm : Form
         if (sysUnapplied.Count > 0 || cleanupTasks.Count > 0)
         {
             SetStatus("Applying system optimizations...");
-            SetProgress(40);
-            var (applied, errors) = systemControl.ApplyAll();
+            SetProgress(30);
+            var (applied, errors) = await Task.Run(() => systemControl.ApplyAll());
             results.AppendLine($"System: {applied} action(s) applied");
             foreach (var err in errors) results.AppendLine($"  - {err}");
         }
@@ -184,8 +196,8 @@ public partial class MainForm : Form
         if (netUnapplied.Count > 0)
         {
             SetStatus("Applying network optimizations...");
-            SetProgress(60);
-            var (applied, errors) = networkControl.ApplyAll();
+            SetProgress(55);
+            var (applied, errors) = await Task.Run(() => networkControl.ApplyAll());
             results.AppendLine($"Network: {applied} optimization(s) applied");
             foreach (var err in errors) results.AppendLine($"  - {err}");
         }
@@ -194,8 +206,8 @@ public partial class MainForm : Form
         if (cleanable.Count > 0)
         {
             SetStatus("Cleaning browser caches...");
-            SetProgress(80);
-            var (cleaned, freedBytes, errors) = browserCacheControl.CleanAll();
+            SetProgress(75);
+            var (cleaned, freedBytes, errors) = await Task.Run(() => browserCacheControl.CleanAll());
             results.AppendLine($"Browser: {cleaned} cache(s) cleaned, freed {BrowserCacheCleanupService.FormatBytes(freedBytes)}");
             foreach (var err in errors) results.AppendLine($"  - {err}");
         }

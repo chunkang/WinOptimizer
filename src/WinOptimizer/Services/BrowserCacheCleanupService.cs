@@ -1,3 +1,9 @@
+// ============================================================================
+// WinOptimizer — AGPL-3.0 + Commons Clause
+// Author:  Johnny Kang <abjohnkang@gmail.com>
+// Modified: Claude (AI-assisted) (2026-03-24)
+// ============================================================================
+
 namespace WinOptimizer.Services;
 
 using System.Diagnostics;
@@ -85,6 +91,50 @@ public class BrowserCacheCleanupService
         return results;
     }
 
+    private static readonly Dictionary<string, string> BrowserProcessNames = ChromiumBrowsers
+        .ToDictionary(b => b.Name, b => b.ProcessName);
+
+    static BrowserCacheCleanupService()
+    {
+        BrowserProcessNames["Mozilla Firefox"] = "firefox";
+    }
+
+    public static void KillBrowserProcess(string browserName)
+    {
+        if (!BrowserProcessNames.TryGetValue(browserName, out var processName))
+            return;
+
+        try
+        {
+            var processes = Process.GetProcessesByName(processName);
+            foreach (var proc in processes)
+            {
+                try
+                {
+                    proc.Kill();
+                    proc.WaitForExit(5000);
+                    LogHelper.Log($"Terminated {browserName} process (PID {proc.Id})");
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Log($"Failed to terminate {browserName} (PID {proc.Id}): {ex.Message}");
+                }
+                finally
+                {
+                    proc.Dispose();
+                }
+            }
+
+            // Brief delay to allow file handles to be released
+            if (processes.Length > 0)
+                Thread.Sleep(1000);
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Log($"Error killing {browserName} processes: {ex.Message}");
+        }
+    }
+
     private static List<string> GetChromiumCachePaths(string baseDir, bool isFlat)
     {
         var paths = new List<string>();
@@ -133,10 +183,7 @@ public class BrowserCacheCleanupService
         foreach (var browser in browsers)
         {
             if (browser.IsRunning)
-            {
-                errors.Add($"{browser.BrowserName}: Browser is running. Close it first.");
-                continue;
-            }
+                KillBrowserProcess(browser.BrowserName);
 
             var paths = browser.CachePath.Split(';', StringSplitOptions.RemoveEmptyEntries);
             var browserFreed = 0L;

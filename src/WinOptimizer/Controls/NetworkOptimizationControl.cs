@@ -1,3 +1,9 @@
+// ============================================================================
+// WinOptimizer — AGPL-3.0 + Commons Clause
+// Author:  Chun Kang <kurapa@kurapa.com>
+// Modified: Claude (AI-assisted) (2026-03-24)
+// ============================================================================
+
 namespace WinOptimizer.Controls;
 
 using WinOptimizer.Controls.Modern;
@@ -18,14 +24,20 @@ public partial class NetworkOptimizationControl : UserControl
         InitializeComponent();
     }
 
-    public int LoadSettings()
+    // Load data from services (can run on background thread)
+    public int LoadSettingsData()
+    {
+        _settings = _optimizer.GetSettings();
+        return _settings.Count(s => !s.IsApplied);
+    }
+
+    // Populate UI from loaded data (must run on UI thread)
+    public void PopulateUI()
     {
         itemsPanel.SuspendLayout();
         itemsPanel.Controls.Clear();
-        _settings = _optimizer.GetSettings();
 
         var y = 0;
-        var unappliedCount = 0;
         foreach (var setting in _settings)
         {
             var item = new ModernCheckItem
@@ -43,11 +55,16 @@ public partial class NetworkOptimizationControl : UserControl
             };
             itemsPanel.Controls.Add(item);
             y += item.Height;
-            if (!setting.IsApplied) unappliedCount++;
         }
 
         itemsPanel.ResumeLayout();
-        return unappliedCount;
+    }
+
+    public int LoadSettings()
+    {
+        var count = LoadSettingsData();
+        PopulateUI();
+        return count;
     }
 
     public List<NetworkSetting> GetUnappliedSettings() =>
@@ -64,7 +81,7 @@ public partial class NetworkOptimizationControl : UserControl
         return result;
     }
 
-    private void BtnApply_Click(object? sender, EventArgs e)
+    private async void BtnApply_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<NetworkSetting>();
         foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
@@ -92,12 +109,17 @@ public partial class NetworkOptimizationControl : UserControl
         if (!RestorePointService.PromptAndCreate("WinOptimizer - Before network optimization"))
             return;
 
+        btnApply.Enabled = false;
+        btnRevert.Enabled = false;
         _mainForm.SetStatus("Applying network optimizations...");
-        var (applied, errors) = _optimizer.ApplySettings(selectedSettings);
+        _mainForm.SetProgress(30);
 
+        var (applied, errors) = await Task.Run(() => _optimizer.ApplySettings(selectedSettings));
+
+        _mainForm.SetProgress(90);
         var msg = $"Applied {applied} network optimization(s).";
         if (errors.Count > 0)
-            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(e => $"  - {e}"));
+            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(err => $"  - {err}"));
 
         if (applied > 0)
             msg += "\n\nNote: A system reboot may be required for network changes to take effect.";
@@ -106,10 +128,14 @@ public partial class NetworkOptimizationControl : UserControl
             MessageBoxButtons.OK, errors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
 
         _mainForm.SetStatus(msg.Split('\n')[0]);
-        LoadSettings();
+        await Task.Run(() => LoadSettingsData());
+        PopulateUI();
+        _mainForm.SetProgress(100);
+        btnApply.Enabled = true;
+        btnRevert.Enabled = true;
     }
 
-    private void BtnRevert_Click(object? sender, EventArgs e)
+    private async void BtnRevert_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<NetworkSetting>();
         foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
@@ -133,17 +159,26 @@ public partial class NetworkOptimizationControl : UserControl
 
         if (confirm != DialogResult.Yes) return;
 
+        btnApply.Enabled = false;
+        btnRevert.Enabled = false;
         _mainForm.SetStatus("Reverting network optimizations...");
-        var (reverted, errors) = _optimizer.RevertSettings(selectedSettings);
+        _mainForm.SetProgress(30);
 
+        var (reverted, errors) = await Task.Run(() => _optimizer.RevertSettings(selectedSettings));
+
+        _mainForm.SetProgress(90);
         var msg = $"Reverted {reverted} network optimization(s).";
         if (errors.Count > 0)
-            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(e => $"  - {e}"));
+            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(err => $"  - {err}"));
 
         MessageBox.Show(msg, "Results",
             MessageBoxButtons.OK, errors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
 
         _mainForm.SetStatus(msg.Split('\n')[0]);
-        LoadSettings();
+        await Task.Run(() => LoadSettingsData());
+        PopulateUI();
+        _mainForm.SetProgress(100);
+        btnApply.Enabled = true;
+        btnRevert.Enabled = true;
     }
 }

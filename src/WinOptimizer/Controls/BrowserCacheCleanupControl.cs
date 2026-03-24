@@ -1,3 +1,9 @@
+// ============================================================================
+// WinOptimizer — AGPL-3.0 + Commons Clause
+// Author:  Johnny Kang <abjohnkang@gmail.com>
+// Modified: Claude (AI-assisted) (2026-03-24)
+// ============================================================================
+
 namespace WinOptimizer.Controls;
 
 using WinOptimizer.Controls.Modern;
@@ -18,11 +24,18 @@ public partial class BrowserCacheCleanupControl : UserControl
         InitializeComponent();
     }
 
-    public (int count, long totalBytes) ScanBrowsers()
+    // Load data from service (can run on background thread)
+    public List<BrowserCacheInfo> DetectBrowserData()
+    {
+        _browsers = _service.DetectBrowsers();
+        return _browsers;
+    }
+
+    // Populate UI from loaded data (must run on UI thread)
+    public void PopulateUI()
     {
         itemsPanel.SuspendLayout();
         itemsPanel.Controls.Clear();
-        _browsers = _service.DetectBrowsers();
 
         if (_browsers.Count == 0)
         {
@@ -37,7 +50,7 @@ public partial class BrowserCacheCleanupControl : UserControl
             itemsPanel.Controls.Add(noDataLabel);
             btnClean.Enabled = false;
             itemsPanel.ResumeLayout();
-            return (0, 0);
+            return;
         }
 
         btnClean.Enabled = true;
@@ -63,20 +76,32 @@ public partial class BrowserCacheCleanupControl : UserControl
         }
 
         itemsPanel.ResumeLayout();
+    }
+
+    public (int count, long totalBytes) ScanBrowsers()
+    {
+        DetectBrowserData();
+        PopulateUI();
         return (_browsers.Count, _browsers.Sum(b => b.CacheSizeBytes));
     }
 
-    private void BtnScan_Click(object? sender, EventArgs e)
+    private async void BtnScan_Click(object? sender, EventArgs e)
     {
+        btnScan.Enabled = false;
         _mainForm.SetStatus("Scanning browser caches...");
-        var (count, totalBytes) = ScanBrowsers();
-        _mainForm.SetStatus($"Found {count} browser(s) with cache data.");
+        _mainForm.SetProgress(30);
+        await Task.Run(() => DetectBrowserData());
+        PopulateUI();
+        var totalBytes = _browsers.Sum(b => b.CacheSizeBytes);
+        _mainForm.SetStatus($"Found {_browsers.Count} browser(s) with cache data.");
+        _mainForm.SetProgress(100);
         var badge = totalBytes > 0 ? BrowserCacheCleanupService.FormatBytes(totalBytes) : null;
         _mainForm.UpdateTabBadge(3, badge);
+        btnScan.Enabled = true;
     }
 
     public List<BrowserCacheInfo> GetCleanableBrowsers() =>
-        _browsers.Where(b => !b.IsRunning && b.CacheSizeBytes > 0).ToList();
+        _browsers.Where(b => b.CacheSizeBytes > 0).ToList();
 
     public (int cleaned, long freedBytes, List<string> errors) CleanAll()
     {
@@ -89,7 +114,7 @@ public partial class BrowserCacheCleanupControl : UserControl
         return result;
     }
 
-    private void BtnClean_Click(object? sender, EventArgs e)
+    private async void BtnClean_Click(object? sender, EventArgs e)
     {
         var selected = new List<BrowserCacheInfo>();
         foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
@@ -105,40 +130,47 @@ public partial class BrowserCacheCleanupControl : UserControl
             return;
         }
 
-        var runningBrowsers = selected.Where(b => b.IsRunning).ToList();
-        if (runningBrowsers.Count > 0)
-        {
-            var names = string.Join(", ", runningBrowsers.Select(b => b.BrowserName));
-            MessageBox.Show(
-                $"The following browsers are still running and must be closed first:\n\n{names}\n\nPlease close them and try again.",
-                "Browsers Running",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
         var totalSize = selected.Sum(b => b.CacheSizeBytes);
         var browserList = string.Join("\n", selected.Select(b => $"  - {b.BrowserName} ({b.CacheSizeDisplay})"));
+
+        var runningBrowsers = selected.Where(b => b.IsRunning).ToList();
+        var runningWarning = runningBrowsers.Count > 0
+            ? $"\n\nThe following browsers are running and will be terminated:\n" +
+              string.Join("\n", runningBrowsers.Select(b => $"  - {b.BrowserName}"))
+            : "";
+
         var confirm = MessageBox.Show(
             $"The following browser caches will be deleted:\n\n{browserList}\n\n" +
             $"Total: ~{BrowserCacheCleanupService.FormatBytes(totalSize)}\n\n" +
-            "This will not affect bookmarks, saved passwords, or extensions.\n\nContinue?",
+            "This will not affect bookmarks, saved passwords, or extensions." +
+            runningWarning + "\n\nContinue?",
             "Confirm Cache Cleanup",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
 
         if (confirm != DialogResult.Yes) return;
 
+        btnClean.Enabled = false;
+        btnScan.Enabled = false;
         _mainForm.SetStatus("Cleaning browser caches...");
-        var (cleaned, freedBytes, errors) = _service.CleanCache(selected);
+        _mainForm.SetProgress(30);
 
+        var (cleaned, freedBytes, errors) = await Task.Run(() => _service.CleanCache(selected));
+
+        _mainForm.SetProgress(80);
         var msg = $"Cleaned {cleaned} browser cache(s), freed {BrowserCacheCleanupService.FormatBytes(freedBytes)}.";
         if (errors.Count > 0)
-            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(e => $"  - {e}"));
+            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(err => $"  - {err}"));
 
         MessageBox.Show(msg, "Results",
             MessageBoxButtons.OK, errors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
 
         _mainForm.SetStatus(msg.Split('\n')[0]);
-        ScanBrowsers();
+        _mainForm.SetProgress(90);
+        await Task.Run(() => DetectBrowserData());
+        PopulateUI();
+        _mainForm.SetProgress(100);
+        btnClean.Enabled = true;
+        btnScan.Enabled = true;
     }
 }

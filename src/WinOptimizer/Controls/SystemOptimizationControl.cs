@@ -1,3 +1,9 @@
+// ============================================================================
+// WinOptimizer — AGPL-3.0 + Commons Clause
+// Author:  Chun Kang <kurapa@kurapa.com>
+// Modified: Claude (AI-assisted) (2026-03-24)
+// ============================================================================
+
 namespace WinOptimizer.Controls;
 
 using WinOptimizer.Controls.Modern;
@@ -20,21 +26,25 @@ public partial class SystemOptimizationControl : UserControl
         InitializeComponent();
     }
 
-    public int LoadSettings()
+    // Load data from services (can run on background thread)
+    public int LoadSettingsData()
+    {
+        _settings = _optimizer.GetSettings();
+        _cleanupTasks = _cleanup.Scan();
+        return _settings.Count(s => !s.IsApplied) + _cleanupTasks.Count(t => t.IsCleanable);
+    }
+
+    // Populate UI from loaded data (must run on UI thread)
+    public void PopulateUI()
     {
         itemsPanel.SuspendLayout();
         itemsPanel.Controls.Clear();
-        _settings = _optimizer.GetSettings();
-        _cleanupTasks = _cleanup.Scan();
 
         var y = 0;
-        var actionableCount = 0;
 
-        // Group registry settings by category
         var groups = _settings.GroupBy(s => s.Category);
         foreach (var group in groups)
         {
-            // Category header label
             var header = new Label
             {
                 Text = group.Key,
@@ -64,13 +74,11 @@ public partial class SystemOptimizationControl : UserControl
                 };
                 itemsPanel.Controls.Add(item);
                 y += item.Height;
-                if (!setting.IsApplied) actionableCount++;
             }
 
-            y += 8; // gap between groups
+            y += 8;
         }
 
-        // Cleanup tasks section
         if (_cleanupTasks.Count > 0)
         {
             var cleanupHeader = new Label
@@ -105,12 +113,17 @@ public partial class SystemOptimizationControl : UserControl
                 };
                 itemsPanel.Controls.Add(item);
                 y += item.Height;
-                if (task.IsCleanable) actionableCount++;
             }
         }
 
         itemsPanel.ResumeLayout();
-        return actionableCount;
+    }
+
+    public int LoadSettings()
+    {
+        var count = LoadSettingsData();
+        PopulateUI();
+        return count;
     }
 
     public List<OptimizationSetting> GetUnappliedSettings() =>
@@ -144,7 +157,7 @@ public partial class SystemOptimizationControl : UserControl
         return (totalApplied, allErrors);
     }
 
-    private void BtnApply_Click(object? sender, EventArgs e)
+    private async void BtnApply_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<OptimizationSetting>();
         var selectedCleanup = new List<CleanupTask>();
@@ -184,13 +197,17 @@ public partial class SystemOptimizationControl : UserControl
                 return;
         }
 
+        btnApply.Enabled = false;
+        btnRevert.Enabled = false;
         _mainForm.SetStatus("Applying system optimizations...");
+        _mainForm.SetProgress(20);
+
         var totalApplied = 0;
         var allErrors = new List<string>();
 
         if (selectedSettings.Count > 0)
         {
-            var (applied, errors) = _optimizer.ApplySettings(selectedSettings);
+            var (applied, errors) = await Task.Run(() => _optimizer.ApplySettings(selectedSettings));
             totalApplied += applied;
             allErrors.AddRange(errors);
         }
@@ -198,23 +215,29 @@ public partial class SystemOptimizationControl : UserControl
         if (selectedCleanup.Count > 0)
         {
             _mainForm.SetStatus("Cleaning up...");
-            var (cleaned, freedBytes, errors) = _cleanup.Clean(selectedCleanup);
+            _mainForm.SetProgress(60);
+            var (cleaned, freedBytes, errors) = await Task.Run(() => _cleanup.Clean(selectedCleanup));
             totalApplied += cleaned;
             allErrors.AddRange(errors);
         }
 
+        _mainForm.SetProgress(90);
         var msg = $"Completed {totalApplied} action(s).";
         if (allErrors.Count > 0)
-            msg += "\n\nErrors:\n" + string.Join("\n", allErrors.Select(e => $"  - {e}"));
+            msg += "\n\nErrors:\n" + string.Join("\n", allErrors.Select(err => $"  - {err}"));
 
         MessageBox.Show(msg, "Results",
             MessageBoxButtons.OK, allErrors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
 
         _mainForm.SetStatus(msg.Split('\n')[0]);
-        LoadSettings();
+        await Task.Run(() => LoadSettingsData());
+        PopulateUI();
+        _mainForm.SetProgress(100);
+        btnApply.Enabled = true;
+        btnRevert.Enabled = true;
     }
 
-    private void BtnRevert_Click(object? sender, EventArgs e)
+    private async void BtnRevert_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<OptimizationSetting>();
         foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
@@ -238,17 +261,26 @@ public partial class SystemOptimizationControl : UserControl
 
         if (confirm != DialogResult.Yes) return;
 
+        btnApply.Enabled = false;
+        btnRevert.Enabled = false;
         _mainForm.SetStatus("Reverting optimizations...");
-        var (reverted, errors) = _optimizer.RevertSettings(selectedSettings);
+        _mainForm.SetProgress(30);
 
+        var (reverted, errors) = await Task.Run(() => _optimizer.RevertSettings(selectedSettings));
+
+        _mainForm.SetProgress(90);
         var msg = $"Reverted {reverted} optimization(s).";
         if (errors.Count > 0)
-            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(e => $"  - {e}"));
+            msg += "\n\nErrors:\n" + string.Join("\n", errors.Select(err => $"  - {err}"));
 
         MessageBox.Show(msg, "Results",
             MessageBoxButtons.OK, errors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
 
         _mainForm.SetStatus(msg.Split('\n')[0]);
-        LoadSettings();
+        await Task.Run(() => LoadSettingsData());
+        PopulateUI();
+        _mainForm.SetProgress(100);
+        btnApply.Enabled = true;
+        btnRevert.Enabled = true;
     }
 }
