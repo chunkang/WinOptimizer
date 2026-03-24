@@ -105,10 +105,17 @@ public partial class MainForm : Form
         var netUnapplied = networkControl.GetUnappliedSettings();
         var cleanable = browserCacheControl.GetCleanableBrowsers();
 
+        var cleanupTasks = systemControl.GetCleanableTasks();
+
         if (swList.Count > 0)
             summary.AppendLine($"Uninstall {swList.Count} security software");
         if (sysUnapplied.Count > 0)
             summary.AppendLine($"Apply {sysUnapplied.Count} system optimization(s)");
+        if (cleanupTasks.Count > 0)
+        {
+            var cleanupSize = cleanupTasks.Sum(t => t.SizeBytes);
+            summary.AppendLine($"Clean {cleanupTasks.Count} item(s) ({SystemCleanupService.FormatBytes(cleanupSize)})");
+        }
         if (netUnapplied.Count > 0)
             summary.AppendLine($"Apply {netUnapplied.Count} network optimization(s)");
         if (cleanable.Count > 0)
@@ -153,13 +160,13 @@ public partial class MainForm : Form
             foreach (var err in errors) results.AppendLine($"  - {err}");
         }
 
-        // 2. Apply system optimizations
-        if (sysUnapplied.Count > 0)
+        // 2. Apply system optimizations and cleanup
+        if (sysUnapplied.Count > 0 || cleanupTasks.Count > 0)
         {
             SetStatus("Applying system optimizations...");
             SetProgress(40);
             var (applied, errors) = systemControl.ApplyAll();
-            results.AppendLine($"System: {applied} optimization(s) applied");
+            results.AppendLine($"System: {applied} action(s) applied");
             foreach (var err in errors) results.AppendLine($"  - {err}");
         }
 
