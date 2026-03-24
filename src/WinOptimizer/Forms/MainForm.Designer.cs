@@ -1,21 +1,15 @@
 using WinOptimizer.Controls;
+using WinOptimizer.Controls.Modern;
 
 namespace WinOptimizer.Forms;
 
 partial class MainForm
 {
     private System.ComponentModel.IContainer components = null;
-    private Panel bottomButtonPanel;
-    private Button btnScanAll;
-    private Button btnFixAll;
-    private TabControl tabControl;
-    private TabPage tabSoftware;
-    private TabPage tabSystem;
-    private TabPage tabNetwork;
-    private TabPage tabBrowserCache;
-    private StatusStrip statusStrip;
-    private ToolStripStatusLabel statusLabel;
-    private ToolStripProgressBar progressBar;
+    private ModernSidebar sidebar;
+    private ModernStatusBar statusBar;
+    private Panel contentPanel;
+    private DashboardControl dashboardControl;
     private SoftwareDetectionControl softwareControl;
     private SystemOptimizationControl systemControl;
     private NetworkOptimizationControl networkControl;
@@ -24,9 +18,7 @@ partial class MainForm
     protected override void Dispose(bool disposing)
     {
         if (disposing && (components != null))
-        {
             components.Dispose();
-        }
         base.Dispose(disposing);
     }
 
@@ -34,93 +26,60 @@ partial class MainForm
     {
         components = new System.ComponentModel.Container();
 
-        bottomButtonPanel = new Panel();
-        btnScanAll = new Button();
-        btnFixAll = new Button();
-        tabControl = new TabControl();
-        tabSoftware = new TabPage();
-        tabSystem = new TabPage();
-        tabNetwork = new TabPage();
-        tabBrowserCache = new TabPage();
-        statusStrip = new StatusStrip();
-        statusLabel = new ToolStripStatusLabel();
-        progressBar = new ToolStripProgressBar();
+        sidebar = new ModernSidebar();
+        statusBar = new ModernStatusBar();
+        contentPanel = new Panel();
 
-        // bottomButtonPanel
-        bottomButtonPanel.Dock = DockStyle.Bottom;
-        bottomButtonPanel.Height = 45;
-        bottomButtonPanel.Padding = new Padding(8, 4, 8, 8);
+        SuspendLayout();
 
-        // btnScanAll
-        btnScanAll.Text = "Scan All";
-        btnScanAll.Size = new Size(100, 30);
-        btnScanAll.Location = new Point(8, 8);
-        btnScanAll.Click += BtnScanAll_Click;
-        bottomButtonPanel.Controls.Add(btnScanAll);
+        // sidebar
+        sidebar.Dock = DockStyle.Left;
+        sidebar.AddItem(new ModernSidebar.NavItem("Dashboard", "\u25A3"));
+        sidebar.AddItem(new ModernSidebar.NavItem("Security", "\u26A0"));
+        sidebar.AddItem(new ModernSidebar.NavItem("System", "\u2699"));
+        sidebar.AddItem(new ModernSidebar.NavItem("Network", "\u26A1"));
+        sidebar.AddItem(new ModernSidebar.NavItem("Browser", "\u2601"));
+        sidebar.SelectedIndexChanged += Sidebar_SelectedIndexChanged;
+        sidebar.BtnScanAll.Click += BtnScanAll_Click;
+        sidebar.BtnFixAll.Click += BtnFixAll_Click;
 
-        // btnFixAll
-        btnFixAll.Text = "Fix All";
-        btnFixAll.Size = new Size(100, 30);
-        btnFixAll.Location = new Point(116, 8);
-        btnFixAll.Enabled = false;
-        btnFixAll.Click += BtnFixAll_Click;
-        bottomButtonPanel.Controls.Add(btnFixAll);
+        // contentPanel
+        contentPanel.Dock = DockStyle.Fill;
+        contentPanel.BackColor = Color.White;
+        contentPanel.Padding = new Padding(0);
 
-        // tabControl
-        tabControl.Dock = DockStyle.Fill;
-        tabControl.TabPages.Add(tabSoftware);
-        tabControl.TabPages.Add(tabSystem);
-        tabControl.TabPages.Add(tabNetwork);
-        tabControl.TabPages.Add(tabBrowserCache);
+        // page controls
+        dashboardControl = new DashboardControl { Dock = DockStyle.Fill };
+        dashboardControl.NavigateToPage += (_, idx) => sidebar.SelectedIndex = idx;
 
-        // tabSoftware
-        tabSoftware.Text = "Security Software";
-        tabSoftware.Padding = new Padding(8);
-        softwareControl = new SoftwareDetectionControl(this);
-        softwareControl.Dock = DockStyle.Fill;
-        tabSoftware.Controls.Add(softwareControl);
+        softwareControl = new SoftwareDetectionControl(this) { Dock = DockStyle.Fill, Visible = false };
+        systemControl = new SystemOptimizationControl(this) { Dock = DockStyle.Fill, Visible = false };
+        networkControl = new NetworkOptimizationControl(this) { Dock = DockStyle.Fill, Visible = false };
+        browserCacheControl = new BrowserCacheCleanupControl(this) { Dock = DockStyle.Fill, Visible = false };
 
-        // tabSystem
-        tabSystem.Text = "System Optimization";
-        tabSystem.Padding = new Padding(8);
-        systemControl = new SystemOptimizationControl(this);
-        systemControl.Dock = DockStyle.Fill;
-        tabSystem.Controls.Add(systemControl);
+        contentPanel.Controls.Add(dashboardControl);
+        contentPanel.Controls.Add(softwareControl);
+        contentPanel.Controls.Add(systemControl);
+        contentPanel.Controls.Add(networkControl);
+        contentPanel.Controls.Add(browserCacheControl);
 
-        // tabNetwork
-        tabNetwork.Text = "Network Optimization";
-        tabNetwork.Padding = new Padding(8);
-        networkControl = new NetworkOptimizationControl(this);
-        networkControl.Dock = DockStyle.Fill;
-        tabNetwork.Controls.Add(networkControl);
-
-        // tabBrowserCache
-        tabBrowserCache.Text = "Browser Cache";
-        tabBrowserCache.Padding = new Padding(8);
-        browserCacheControl = new BrowserCacheCleanupControl(this);
-        browserCacheControl.Dock = DockStyle.Fill;
-        tabBrowserCache.Controls.Add(browserCacheControl);
-
-        // statusStrip
-        statusLabel.Spring = true;
-        statusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-        statusLabel.Text = "Ready";
-        progressBar.Visible = false;
-        progressBar.Size = new Size(150, 16);
-        statusStrip.Items.Add(statusLabel);
-        statusStrip.Items.Add(progressBar);
+        // statusBar
+        statusBar.Dock = DockStyle.Bottom;
 
         // MainForm
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(700, 520);
+        ClientSize = new Size(960, 620);
         FormBorderStyle = FormBorderStyle.Sizable;
-        MinimumSize = new Size(700, 520);
+        MinimumSize = new Size(900, 600);
         StartPosition = FormStartPosition.CenterScreen;
         Text = "WinOptimizer";
 
-        Controls.Add(tabControl);
-        Controls.Add(bottomButtonPanel);
-        Controls.Add(statusStrip);
+        Controls.Add(contentPanel);
+        Controls.Add(sidebar);
+        Controls.Add(statusBar);
+
+        ResumeLayout(false);
+        PerformLayout();
     }
 }

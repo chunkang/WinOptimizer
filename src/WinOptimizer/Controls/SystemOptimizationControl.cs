@@ -1,8 +1,10 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
 using WinOptimizer.Forms;
 using WinOptimizer.Models;
 using WinOptimizer.Services;
+using WinOptimizer.Theme;
 
 public partial class SystemOptimizationControl : UserControl
 {
@@ -16,40 +18,98 @@ public partial class SystemOptimizationControl : UserControl
     {
         _mainForm = mainForm;
         InitializeComponent();
-        LoadSettings();
     }
 
     public int LoadSettings()
     {
-        checkedListBox.Items.Clear();
+        itemsPanel.SuspendLayout();
+        itemsPanel.Controls.Clear();
         _settings = _optimizer.GetSettings();
         _cleanupTasks = _cleanup.Scan();
 
+        var y = 0;
         var actionableCount = 0;
 
-        // Registry optimizations
-        foreach (var setting in _settings)
+        // Group registry settings by category
+        var groups = _settings.GroupBy(s => s.Category);
+        foreach (var group in groups)
         {
-            var label = setting.IsApplied
-                ? $"{setting.Name} (Applied)"
-                : setting.Name;
-            var index = checkedListBox.Items.Add(label);
-            checkedListBox.SetItemChecked(index, !setting.IsApplied);
-            if (!setting.IsApplied) actionableCount++;
+            // Category header label
+            var header = new Label
+            {
+                Text = group.Key,
+                Font = AppTheme.CardTitleFont,
+                ForeColor = AppTheme.TextSecondary,
+                Location = new Point(0, y),
+                Size = new Size(itemsPanel.ClientSize.Width, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            };
+            itemsPanel.Controls.Add(header);
+            y += 30;
+
+            foreach (var setting in group)
+            {
+                var item = new ModernCheckItem
+                {
+                    Text = setting.Name,
+                    Description = setting.Description,
+                    IsChecked = !setting.IsApplied,
+                    StatusText = setting.IsApplied ? "Applied" : "",
+                    StatusColor = setting.IsApplied ? AppTheme.StatusGreen : AppTheme.StatusAmber,
+                    ItemTag = setting,
+                    Height = 54,
+                    Location = new Point(0, y),
+                    Width = itemsPanel.ClientSize.Width,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                };
+                itemsPanel.Controls.Add(item);
+                y += item.Height;
+                if (!setting.IsApplied) actionableCount++;
+            }
+
+            y += 8; // gap between groups
         }
 
-        // Cleanup tasks
-        foreach (var task in _cleanupTasks)
+        // Cleanup tasks section
+        if (_cleanupTasks.Count > 0)
         {
-            var sizeLabel = task.IsCleanable
-                ? SystemCleanupService.FormatBytes(task.SizeBytes)
-                : "Empty";
-            var label = $"{task.Name} ({sizeLabel})";
-            var index = checkedListBox.Items.Add(label);
-            checkedListBox.SetItemChecked(index, task.IsCleanable);
-            if (task.IsCleanable) actionableCount++;
+            var cleanupHeader = new Label
+            {
+                Text = "Disk Cleanup",
+                Font = AppTheme.CardTitleFont,
+                ForeColor = AppTheme.TextSecondary,
+                Location = new Point(0, y),
+                Size = new Size(itemsPanel.ClientSize.Width, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            };
+            itemsPanel.Controls.Add(cleanupHeader);
+            y += 30;
+
+            foreach (var task in _cleanupTasks)
+            {
+                var sizeLabel = task.IsCleanable
+                    ? SystemCleanupService.FormatBytes(task.SizeBytes)
+                    : "Empty";
+                var item = new ModernCheckItem
+                {
+                    Text = task.Name,
+                    Description = task.Description,
+                    IsChecked = task.IsCleanable,
+                    StatusText = sizeLabel,
+                    StatusColor = task.IsCleanable ? AppTheme.StatusAmber : AppTheme.StatusGreen,
+                    ItemTag = task,
+                    Height = 54,
+                    Location = new Point(0, y),
+                    Width = itemsPanel.ClientSize.Width,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                };
+                itemsPanel.Controls.Add(item);
+                y += item.Height;
+                if (task.IsCleanable) actionableCount++;
+            }
         }
 
+        itemsPanel.ResumeLayout();
         return actionableCount;
     }
 
@@ -64,7 +124,6 @@ public partial class SystemOptimizationControl : UserControl
         var totalApplied = 0;
         var allErrors = new List<string>();
 
-        // Apply registry optimizations
         var unapplied = GetUnappliedSettings();
         if (unapplied.Count > 0)
         {
@@ -73,7 +132,6 @@ public partial class SystemOptimizationControl : UserControl
             allErrors.AddRange(errors);
         }
 
-        // Run cleanup tasks
         var cleanable = GetCleanableTasks();
         if (cleanable.Count > 0)
         {
@@ -91,21 +149,13 @@ public partial class SystemOptimizationControl : UserControl
         var selectedSettings = new List<OptimizationSetting>();
         var selectedCleanup = new List<CleanupTask>();
 
-        for (int i = 0; i < checkedListBox.Items.Count; i++)
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
         {
-            if (!checkedListBox.GetItemChecked(i)) continue;
-
-            if (i < _settings.Count)
-            {
-                if (!_settings[i].IsApplied)
-                    selectedSettings.Add(_settings[i]);
-            }
-            else
-            {
-                var cleanupIndex = i - _settings.Count;
-                if (_cleanupTasks[cleanupIndex].IsCleanable)
-                    selectedCleanup.Add(_cleanupTasks[cleanupIndex]);
-            }
+            if (!ctrl.IsChecked) continue;
+            if (ctrl.ItemTag is OptimizationSetting s && !s.IsApplied)
+                selectedSettings.Add(s);
+            else if (ctrl.ItemTag is CleanupTask t && t.IsCleanable)
+                selectedCleanup.Add(t);
         }
 
         if (selectedSettings.Count == 0 && selectedCleanup.Count == 0)
@@ -115,7 +165,6 @@ public partial class SystemOptimizationControl : UserControl
             return;
         }
 
-        // Build confirmation message
         var lines = new List<string>();
         lines.AddRange(selectedSettings.Select(s => $"  - {s.Name}: {s.Description}"));
         lines.AddRange(selectedCleanup.Select(t =>
@@ -168,10 +217,10 @@ public partial class SystemOptimizationControl : UserControl
     private void BtnRevert_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<OptimizationSetting>();
-        for (int i = 0; i < _settings.Count; i++)
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
         {
-            if (checkedListBox.GetItemChecked(i) && _settings[i].IsApplied)
-                selectedSettings.Add(_settings[i]);
+            if (ctrl.IsChecked && ctrl.ItemTag is OptimizationSetting s && s.IsApplied)
+                selectedSettings.Add(s);
         }
 
         if (selectedSettings.Count == 0)

@@ -1,5 +1,6 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
 using WinOptimizer.Forms;
 using WinOptimizer.Helpers;
 using WinOptimizer.Models;
@@ -22,7 +23,7 @@ public partial class SoftwareDetectionControl : UserControl
     {
         btnScan.Enabled = false;
         btnUninstall.Enabled = false;
-        listView.Items.Clear();
+        itemsPanel.Controls.Clear();
         _mainForm.SetStatus("Scanning for banking/security software...");
         _mainForm.SetProgress(50);
 
@@ -30,18 +31,22 @@ public partial class SoftwareDetectionControl : UserControl
         {
             _detectedSoftware = await Task.Run(() => _detector.Scan());
 
+            var y = 0;
             foreach (var sw in _detectedSoftware)
             {
-                var item = new ListViewItem(new[]
+                var item = new ModernListItem
                 {
-                    sw.DisplayName,
-                    sw.Publisher,
-                    sw.DisplayVersion ?? "",
-                    sw.InstallLocation ?? ""
-                });
-                item.Checked = true;
-                item.Tag = sw;
-                listView.Items.Add(item);
+                    Text = sw.DisplayName,
+                    Publisher = sw.Publisher,
+                    Version = sw.DisplayVersion ?? "",
+                    IsChecked = true,
+                    ItemTag = sw,
+                    Location = new Point(0, y),
+                    Width = itemsPanel.ClientSize.Width,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                };
+                itemsPanel.Controls.Add(item);
+                y += item.Height;
             }
 
             lblCount.Text = $"{_detectedSoftware.Count} program(s) detected";
@@ -92,20 +97,21 @@ public partial class SoftwareDetectionControl : UserControl
 
     private void BtnSelectAll_Click(object? sender, EventArgs e)
     {
-        foreach (ListViewItem item in listView.Items)
-            item.Checked = true;
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernListItem>())
+            ctrl.IsChecked = true;
     }
 
     private void BtnDeselectAll_Click(object? sender, EventArgs e)
     {
-        foreach (ListViewItem item in listView.Items)
-            item.Checked = false;
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernListItem>())
+            ctrl.IsChecked = false;
     }
 
     private async void BtnUninstall_Click(object? sender, EventArgs e)
     {
-        var selected = listView.CheckedItems.Cast<ListViewItem>()
-            .Select(i => (DetectedSoftware)i.Tag!)
+        var selected = itemsPanel.Controls.OfType<ModernListItem>()
+            .Where(i => i.IsChecked)
+            .Select(i => (DetectedSoftware)i.ItemTag!)
             .ToList();
 
         if (selected.Count == 0)

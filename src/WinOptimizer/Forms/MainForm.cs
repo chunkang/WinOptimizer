@@ -16,14 +16,9 @@ public partial class MainForm : Form
             if (info != null)
             {
                 var infoVer = info.InformationalVersion;
-                // Show build number: "0.1.4+build.2" → "0.1.4 (build 2)"
                 var plusIndex = infoVer.IndexOf("+build.");
                 if (plusIndex >= 0)
-                {
-                    var semver = infoVer[..plusIndex];
-                    var buildNum = infoVer[(plusIndex + 7)..];
-                    return $"{semver} (build {buildNum})";
-                }
+                    return infoVer[..plusIndex];
                 return infoVer;
             }
             var ver = asm.GetName().Version;
@@ -31,16 +26,29 @@ public partial class MainForm : Form
         }
     }
 
-    private static readonly string[] TabBaseNames = { "Security Software", "System Optimization", "Network Optimization", "Browser Cache" };
+    private readonly Control[] _pages;
 
     public MainForm()
     {
         InitializeComponent();
         Text = $"WinOptimizer v{AppVersion}";
-        Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
+        var exePath = Environment.ProcessPath;
+        if (exePath != null)
+            Icon = Icon.ExtractAssociatedIcon(exePath);
+        sidebar.AppVersion = AppVersion;
+
+        _pages = new Control[] { dashboardControl, softwareControl, systemControl, networkControl, browserCacheControl };
+
         Shown += async (_, _) => await ScanAllAsync();
     }
 
+    private void Sidebar_SelectedIndexChanged(object? sender, int index)
+    {
+        for (int i = 0; i < _pages.Length; i++)
+            _pages[i].Visible = i == index;
+    }
+
+    // Maps sidebar nav indices (1-4) to badge indices
     public void UpdateTabBadge(int tabIndex, string? badge)
     {
         if (InvokeRequired)
@@ -48,47 +56,50 @@ public partial class MainForm : Form
             Invoke(() => UpdateTabBadge(tabIndex, badge));
             return;
         }
-        var tab = tabControl.TabPages[tabIndex];
-        tab.Text = badge != null
-            ? $"{TabBaseNames[tabIndex]} ({badge})"
-            : TabBaseNames[tabIndex];
+        // tabIndex 0-3 maps to sidebar nav items 1-4 (0 is Dashboard)
+        sidebar.SetBadge(tabIndex + 1, badge);
     }
 
     private async Task ScanAllAsync()
     {
-        btnScanAll.Enabled = false;
+        sidebar.BtnScanAll.Enabled = false;
         SetStatus("Scanning all...");
         SetProgress(25);
 
         // Security Software (async)
         var swCount = await softwareControl.ScanAsync();
         UpdateTabBadge(0, swCount > 0 ? $"{swCount} found" : null);
+        dashboardControl.UpdateSecurityCard(swCount);
 
         SetProgress(50);
 
         // System Optimization
         var sysUnapplied = systemControl.LoadSettings();
         UpdateTabBadge(1, sysUnapplied > 0 ? $"{sysUnapplied} available" : null);
+        dashboardControl.UpdateSystemCard(sysUnapplied);
 
         SetProgress(75);
 
         // Network Optimization
         var netUnapplied = networkControl.LoadSettings();
         UpdateTabBadge(2, netUnapplied > 0 ? $"{netUnapplied} available" : null);
+        dashboardControl.UpdateNetworkCard(netUnapplied);
 
         // Browser Cache
         var (_, totalBytes) = browserCacheControl.ScanBrowsers();
         UpdateTabBadge(3, totalBytes > 0
-            ? Services.BrowserCacheCleanupService.FormatBytes(totalBytes)
+            ? BrowserCacheCleanupService.FormatBytes(totalBytes)
             : null);
+        dashboardControl.UpdateBrowserCard(totalBytes);
 
         SetProgress(100);
         SetStatus("Scan complete.");
-        btnScanAll.Enabled = true;
+        dashboardControl.SetLastScanTime();
+        sidebar.BtnScanAll.Enabled = true;
 
         // Enable Fix All if there's anything actionable
         var hasWork = swCount > 0 || sysUnapplied > 0 || netUnapplied > 0 || totalBytes > 0;
-        btnFixAll.Enabled = hasWork;
+        sidebar.BtnFixAll.Enabled = hasWork;
     }
 
     private async void BtnScanAll_Click(object? sender, EventArgs e)
@@ -104,7 +115,6 @@ public partial class MainForm : Form
         var sysUnapplied = systemControl.GetUnappliedSettings();
         var netUnapplied = networkControl.GetUnappliedSettings();
         var cleanable = browserCacheControl.GetCleanableBrowsers();
-
         var cleanupTasks = systemControl.GetCleanableTasks();
 
         if (swList.Count > 0)
@@ -145,8 +155,8 @@ public partial class MainForm : Form
                 return;
         }
 
-        btnScanAll.Enabled = false;
-        btnFixAll.Enabled = false;
+        sidebar.BtnScanAll.Enabled = false;
+        sidebar.BtnFixAll.Enabled = false;
         var results = new StringBuilder();
 
         // 1. Uninstall security software
@@ -207,7 +217,7 @@ public partial class MainForm : Form
             Invoke(() => SetStatus(message));
             return;
         }
-        statusLabel.Text = message;
+        statusBar.StatusText = message;
     }
 
     public void SetProgress(int value)
@@ -217,7 +227,6 @@ public partial class MainForm : Form
             Invoke(() => SetProgress(value));
             return;
         }
-        progressBar.Value = Math.Clamp(value, 0, 100);
-        progressBar.Visible = value > 0 && value < 100;
+        statusBar.ProgressValue = Math.Clamp(value, 0, 100);
     }
 }

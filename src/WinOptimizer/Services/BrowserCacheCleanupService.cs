@@ -77,6 +77,7 @@ public class BrowserCacheCleanupService
             });
         }
 
+        results.Sort((a, b) => string.Compare(a.BrowserName, b.BrowserName, StringComparison.OrdinalIgnoreCase));
         return results;
     }
 

@@ -6,6 +6,18 @@ WinOptimizer is designed to help diagnose and resolve issues that may be slowing
 
 Download the latest `WinOptimizer.exe` from the [Releases](../../releases/latest) page — no build or install required. Just run it as Administrator.
 
+## User Interface
+
+WinOptimizer features a modern, Windows 11-inspired interface with:
+
+- **Dark sidebar navigation** with badge indicators showing actionable items at a glance
+- **Dashboard** landing page with summary cards for each feature area
+- **Card-based layouts** with grouped settings, status badges, and descriptions
+- **Scan All / Fix All** buttons in the sidebar for one-click system-wide optimization
+- **Progress bar** in the status bar showing real-time operation progress
+
+The UI includes 5 sections accessible from the sidebar: Dashboard, Security Software, System Optimization, Network Optimization, and Browser Cache.
+
 ## Features
 
 ### 1. Korean Banking/Security Software Detection & Removal

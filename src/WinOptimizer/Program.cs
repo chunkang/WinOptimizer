@@ -19,6 +19,30 @@ static class Program
         LogHelper.Initialize();
         LogHelper.Log("WinOptimizer started");
 
-        Application.Run(new MainForm());
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, args) =>
+        {
+            LogHelper.Log($"UI thread exception: {args.Exception}");
+            MessageBox.Show(args.Exception.ToString(), "WinOptimizer Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            var ex = args.ExceptionObject as Exception;
+            LogHelper.Log($"Unhandled exception: {ex}");
+            MessageBox.Show(ex?.ToString() ?? "Unknown error", "WinOptimizer Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        };
+
+        try
+        {
+            Application.Run(new MainForm());
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Log($"Fatal exception: {ex}");
+            MessageBox.Show(ex.ToString(), "WinOptimizer Fatal Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 }

@@ -1,12 +1,16 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
+using WinOptimizer.Theme;
+
 partial class SystemOptimizationControl
 {
     private System.ComponentModel.IContainer components = null;
-    private CheckedListBox checkedListBox;
-    private Button btnApply;
-    private Button btnRevert;
-    private Label lblDescription;
+    private ModernButton btnApply;
+    private ModernButton btnRevert;
+    private Panel itemsPanel;
+    private Label lblTitle;
+    private Label lblSubtitle;
 
     protected override void Dispose(bool disposing)
     {
@@ -18,41 +22,57 @@ partial class SystemOptimizationControl
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        var p = AppTheme.ContentPadding;
 
-        checkedListBox = new CheckedListBox();
-        btnApply = new Button();
-        btnRevert = new Button();
-        lblDescription = new Label();
+        // Header panel (docked top)
+        var headerPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 130,
+            BackColor = Color.White,
+        };
 
-        // lblDescription
-        lblDescription.Text = "Select optimizations to apply or revert. Items marked '(Applied)' are currently active.";
-        lblDescription.Location = new Point(0, 0);
-        lblDescription.Size = new Size(640, 25);
+        lblTitle = new Label
+        {
+            Text = "System Optimization",
+            Font = AppTheme.PageTitleFont,
+            ForeColor = AppTheme.TextPrimary,
+            Location = new Point(p, 12),
+            AutoSize = true,
+        };
 
-        // checkedListBox
-        checkedListBox.Location = new Point(0, 30);
-        checkedListBox.Size = new Size(640, 350);
-        checkedListBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        checkedListBox.CheckOnClick = true;
+        lblSubtitle = new Label
+        {
+            Text = "Registry tweaks and disk cleanup to improve system performance",
+            Font = AppTheme.PageSubtitleFont,
+            ForeColor = AppTheme.TextSecondary,
+            Location = new Point(p, 52),
+            AutoSize = true,
+        };
 
-        // btnApply
-        btnApply.Text = "Apply Selected";
-        btnApply.Location = new Point(380, 390);
-        btnApply.Size = new Size(120, 30);
-        btnApply.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        var btnY = 78;
+        btnApply = new ModernButton { Text = "Apply Selected", Location = new Point(p, btnY), Size = new Size(130, 34) };
         btnApply.Click += BtnApply_Click;
 
-        // btnRevert
-        btnRevert.Text = "Revert Selected";
-        btnRevert.Location = new Point(510, 390);
-        btnRevert.Size = new Size(130, 30);
-        btnRevert.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        btnRevert = new ModernButton { Text = "Revert Selected", IsPrimary = false, Location = new Point(p + 140, btnY), Size = new Size(140, 34) };
         btnRevert.Click += BtnRevert_Click;
 
-        // SystemOptimizationControl
-        Controls.Add(lblDescription);
-        Controls.Add(checkedListBox);
-        Controls.Add(btnApply);
-        Controls.Add(btnRevert);
+        headerPanel.Controls.Add(lblTitle);
+        headerPanel.Controls.Add(lblSubtitle);
+        headerPanel.Controls.Add(btnApply);
+        headerPanel.Controls.Add(btnRevert);
+
+        // Items panel (fills remaining space)
+        itemsPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.Transparent,
+            Padding = new Padding(p, 0, p, 0),
+        };
+
+        BackColor = Color.White;
+        Controls.Add(itemsPanel);
+        Controls.Add(headerPanel);
     }
 }

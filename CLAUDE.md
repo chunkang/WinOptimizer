@@ -31,17 +31,19 @@ Note: Development may happen on macOS, but building/running the WinForms app req
 
 ```
 src/WinOptimizer/
-  Models/       - Data classes (DetectedSoftware, OptimizationSetting, NetworkSetting)
-  Data/         - KnownSoftwareDatabase (match patterns for ~40 Korean banking apps)
-  Helpers/      - RegistryHelper (registry I/O wrapper), AdminHelper, LogHelper
-  Services/     - Business logic (SoftwareDetector, Uninstall, RegistryOptimizer, NetworkOptimizer, RestorePoint)
-  Forms/        - MainForm (tabbed dialog shell)
-  Controls/     - UserControls for each tab (SoftwareDetection, SystemOptimization, NetworkOptimization)
+  Models/          - Data classes (DetectedSoftware, OptimizationSetting, NetworkSetting, CleanupTask)
+  Data/            - KnownSoftwareDatabase (match patterns for ~40 Korean banking apps)
+  Helpers/         - RegistryHelper (registry I/O wrapper), AdminHelper, LogHelper
+  Services/        - Business logic (SoftwareDetector, Uninstall, RegistryOptimizer, NetworkOptimizer, SystemCleanup, RestorePoint)
+  Theme/           - AppTheme (colors, fonts, spacing) and ThemeRenderer (drawing utilities)
+  Controls/Modern/ - Custom-drawn UI controls (ModernSidebar, ModernButton, ModernCard, ModernCheckItem, ModernListItem, etc.)
+  Controls/        - Page UserControls (Dashboard, SoftwareDetection, SystemOptimization, NetworkOptimization, BrowserCacheCleanup)
+  Forms/           - MainForm (sidebar navigation shell)
 ```
 
 ### Key Patterns
 
-- **MainForm** hosts a `TabControl` with 3 tabs, each containing a `UserControl`
+- **MainForm** hosts a `ModernSidebar` + content `Panel` with 5 pages (Dashboard + 4 feature pages)
 - All registry access goes through `RegistryHelper` which handles error logging and hive parsing
 - Services read current registry state to determine which optimizations are already applied
 - Destructive operations (uninstall, registry writes) always prompt for confirmation and offer restore point creation

@@ -1,13 +1,18 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
+using WinOptimizer.Theme;
+
 partial class SoftwareDetectionControl
 {
     private System.ComponentModel.IContainer components = null;
-    private Button btnScan;
-    private Button btnSelectAll;
-    private Button btnDeselectAll;
-    private Button btnUninstall;
-    private ListView listView;
+    private ModernButton btnScan;
+    private ModernButton btnSelectAll;
+    private ModernButton btnDeselectAll;
+    private ModernButton btnUninstall;
+    private Panel itemsPanel;
+    private Label lblTitle;
+    private Label lblSubtitle;
     private Label lblCount;
 
     protected override void Dispose(bool disposing)
@@ -20,65 +25,92 @@ partial class SoftwareDetectionControl
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        var p = AppTheme.ContentPadding;
 
-        btnScan = new Button();
-        btnSelectAll = new Button();
-        btnDeselectAll = new Button();
-        btnUninstall = new Button();
-        listView = new ListView();
-        lblCount = new Label();
+        // Header panel (docked top)
+        var headerPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 130,
+            BackColor = Color.White,
+        };
 
-        // btnScan
-        btnScan.Text = "Scan Now";
-        btnScan.Location = new Point(0, 0);
-        btnScan.Size = new Size(100, 30);
+        lblTitle = new Label
+        {
+            Text = "Security Software",
+            Font = AppTheme.PageTitleFont,
+            ForeColor = AppTheme.TextPrimary,
+            Location = new Point(p, 12),
+            AutoSize = true,
+        };
+
+        lblSubtitle = new Label
+        {
+            Text = "Detect and remove unnecessary Korean banking/security software",
+            Font = AppTheme.PageSubtitleFont,
+            ForeColor = AppTheme.TextSecondary,
+            Location = new Point(p, 52),
+            AutoSize = true,
+        };
+
+        var btnY = 78;
+        btnScan = new ModernButton { Text = "Scan Now", Location = new Point(p, btnY), Size = new Size(110, 34) };
         btnScan.Click += BtnScan_Click;
 
-        // btnSelectAll
-        btnSelectAll.Text = "Select All";
-        btnSelectAll.Location = new Point(440, 0);
-        btnSelectAll.Size = new Size(90, 30);
+        btnSelectAll = new ModernButton { Text = "Select All", IsPrimary = false, Location = new Point(p + 120, btnY), Size = new Size(100, 34) };
         btnSelectAll.Click += BtnSelectAll_Click;
 
-        // btnDeselectAll
-        btnDeselectAll.Text = "Deselect All";
-        btnDeselectAll.Location = new Point(540, 0);
-        btnDeselectAll.Size = new Size(100, 30);
+        btnDeselectAll = new ModernButton { Text = "Deselect All", IsPrimary = false, Location = new Point(p + 230, btnY), Size = new Size(110, 34) };
         btnDeselectAll.Click += BtnDeselectAll_Click;
 
-        // listView
-        listView.View = View.Details;
-        listView.CheckBoxes = true;
-        listView.FullRowSelect = true;
-        listView.GridLines = true;
-        listView.Location = new Point(0, 40);
-        listView.Size = new Size(640, 340);
-        listView.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        listView.Columns.Add("Name", 200);
-        listView.Columns.Add("Publisher", 150);
-        listView.Columns.Add("Version", 80);
-        listView.Columns.Add("Location", 200);
+        headerPanel.Controls.Add(lblTitle);
+        headerPanel.Controls.Add(lblSubtitle);
+        headerPanel.Controls.Add(btnScan);
+        headerPanel.Controls.Add(btnSelectAll);
+        headerPanel.Controls.Add(btnDeselectAll);
 
-        // lblCount
-        lblCount.Text = "Click 'Scan Now' to detect banking/security software";
-        lblCount.Location = new Point(0, 390);
-        lblCount.Size = new Size(400, 25);
-        lblCount.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        // Footer panel (docked bottom)
+        var footerPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 44,
+            BackColor = Color.White,
+        };
 
-        // btnUninstall
-        btnUninstall.Text = "Uninstall Selected";
-        btnUninstall.Location = new Point(500, 390);
-        btnUninstall.Size = new Size(140, 30);
-        btnUninstall.Enabled = false;
-        btnUninstall.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        lblCount = new Label
+        {
+            Text = "Click 'Scan Now' to detect banking/security software",
+            Font = AppTheme.CardSecondaryFont,
+            ForeColor = AppTheme.TextSecondary,
+            Location = new Point(p, 8),
+            AutoSize = true,
+        };
+
+        btnUninstall = new ModernButton
+        {
+            Text = "Uninstall Selected",
+            Size = new Size(160, 36),
+            Enabled = false,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+        };
+        btnUninstall.Location = new Point(footerPanel.Width - btnUninstall.Width - p, 4);
         btnUninstall.Click += BtnUninstall_Click;
 
-        // SoftwareDetectionControl
-        Controls.Add(btnScan);
-        Controls.Add(btnSelectAll);
-        Controls.Add(btnDeselectAll);
-        Controls.Add(listView);
-        Controls.Add(lblCount);
-        Controls.Add(btnUninstall);
+        footerPanel.Controls.Add(lblCount);
+        footerPanel.Controls.Add(btnUninstall);
+
+        // Items panel (fills remaining space)
+        itemsPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.Transparent,
+            Padding = new Padding(p, 0, p, 0),
+        };
+
+        BackColor = Color.White;
+        Controls.Add(itemsPanel);
+        Controls.Add(footerPanel);
+        Controls.Add(headerPanel);
     }
 }

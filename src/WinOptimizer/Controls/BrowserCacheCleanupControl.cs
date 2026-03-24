@@ -1,8 +1,10 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
 using WinOptimizer.Forms;
 using WinOptimizer.Models;
 using WinOptimizer.Services;
+using WinOptimizer.Theme;
 
 public partial class BrowserCacheCleanupControl : UserControl
 {
@@ -14,30 +16,53 @@ public partial class BrowserCacheCleanupControl : UserControl
     {
         _mainForm = mainForm;
         InitializeComponent();
-        ScanBrowsers();
     }
 
     public (int count, long totalBytes) ScanBrowsers()
     {
-        checkedListBox.Items.Clear();
+        itemsPanel.SuspendLayout();
+        itemsPanel.Controls.Clear();
         _browsers = _service.DetectBrowsers();
 
         if (_browsers.Count == 0)
         {
-            checkedListBox.Items.Add("No browser caches detected.");
+            var noDataLabel = new Label
+            {
+                Text = "No browser caches detected.",
+                Font = AppTheme.CardBodyFont,
+                ForeColor = AppTheme.TextSecondary,
+                Location = new Point(0, 8),
+                AutoSize = true,
+            };
+            itemsPanel.Controls.Add(noDataLabel);
             btnClean.Enabled = false;
+            itemsPanel.ResumeLayout();
             return (0, 0);
         }
 
         btnClean.Enabled = true;
+        var y = 0;
         foreach (var browser in _browsers)
         {
             var runningTag = browser.IsRunning ? " [RUNNING]" : "";
-            var label = $"{browser.BrowserName} — {browser.CacheSizeDisplay}{runningTag}";
-            var index = checkedListBox.Items.Add(label);
-            checkedListBox.SetItemChecked(index, !browser.IsRunning);
+            var item = new ModernCheckItem
+            {
+                Text = $"{browser.BrowserName}{runningTag}",
+                Description = $"Cache size: {browser.CacheSizeDisplay}",
+                IsChecked = !browser.IsRunning,
+                StatusText = browser.IsRunning ? "Running" : browser.CacheSizeDisplay,
+                StatusColor = browser.IsRunning ? AppTheme.StatusRed : AppTheme.StatusAmber,
+                ItemTag = browser,
+                Height = 54,
+                Location = new Point(0, y),
+                Width = itemsPanel.ClientSize.Width,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            };
+            itemsPanel.Controls.Add(item);
+            y += item.Height;
         }
 
+        itemsPanel.ResumeLayout();
         return (_browsers.Count, _browsers.Sum(b => b.CacheSizeBytes));
     }
 
@@ -67,10 +92,10 @@ public partial class BrowserCacheCleanupControl : UserControl
     private void BtnClean_Click(object? sender, EventArgs e)
     {
         var selected = new List<BrowserCacheInfo>();
-        for (int i = 0; i < checkedListBox.Items.Count && i < _browsers.Count; i++)
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
         {
-            if (checkedListBox.GetItemChecked(i))
-                selected.Add(_browsers[i]);
+            if (ctrl.IsChecked && ctrl.ItemTag is BrowserCacheInfo b)
+                selected.Add(b);
         }
 
         if (selected.Count == 0)

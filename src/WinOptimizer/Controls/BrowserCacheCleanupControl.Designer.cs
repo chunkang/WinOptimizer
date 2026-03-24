@@ -1,12 +1,16 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
+using WinOptimizer.Theme;
+
 partial class BrowserCacheCleanupControl
 {
     private System.ComponentModel.IContainer components = null;
-    private CheckedListBox checkedListBox;
-    private Button btnScan;
-    private Button btnClean;
-    private Label lblDescription;
+    private ModernButton btnScan;
+    private ModernButton btnClean;
+    private Panel itemsPanel;
+    private Label lblTitle;
+    private Label lblSubtitle;
     private Label lblNote;
 
     protected override void Dispose(bool disposing)
@@ -19,50 +23,77 @@ partial class BrowserCacheCleanupControl
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        var p = AppTheme.ContentPadding;
 
-        checkedListBox = new CheckedListBox();
-        btnScan = new Button();
-        btnClean = new Button();
-        lblDescription = new Label();
-        lblNote = new Label();
+        // Header panel (docked top)
+        var headerPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 130,
+            BackColor = Color.White,
+        };
 
-        // lblDescription
-        lblDescription.Text = "Select browsers to clean cache. Items marked [RUNNING] must be closed first.";
-        lblDescription.Location = new Point(0, 0);
-        lblDescription.Size = new Size(640, 25);
+        lblTitle = new Label
+        {
+            Text = "Browser Cache",
+            Font = AppTheme.PageTitleFont,
+            ForeColor = AppTheme.TextPrimary,
+            Location = new Point(p, 12),
+            AutoSize = true,
+        };
 
-        // checkedListBox
-        checkedListBox.Location = new Point(0, 30);
-        checkedListBox.Size = new Size(640, 310);
-        checkedListBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        checkedListBox.CheckOnClick = true;
+        lblSubtitle = new Label
+        {
+            Text = "Clean browser caches to free disk space. Bookmarks and passwords are not affected.",
+            Font = AppTheme.PageSubtitleFont,
+            ForeColor = AppTheme.TextSecondary,
+            Location = new Point(p, 52),
+            AutoSize = true,
+        };
 
-        // lblNote
-        lblNote.Text = "Tip: Close all browsers before cleaning for best results. Bookmarks and passwords are not affected.";
-        lblNote.ForeColor = System.Drawing.Color.DarkBlue;
-        lblNote.Location = new Point(0, 350);
-        lblNote.Size = new Size(640, 25);
-        lblNote.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-
-        // btnScan
-        btnScan.Text = "Rescan";
-        btnScan.Location = new Point(430, 390);
-        btnScan.Size = new Size(90, 30);
-        btnScan.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        var btnY = 78;
+        btnScan = new ModernButton { Text = "Rescan", IsPrimary = false, Location = new Point(p, btnY), Size = new Size(100, 34) };
         btnScan.Click += BtnScan_Click;
 
-        // btnClean
-        btnClean.Text = "Clean Selected";
-        btnClean.Location = new Point(530, 390);
-        btnClean.Size = new Size(110, 30);
-        btnClean.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        btnClean = new ModernButton { Text = "Clean Selected", Location = new Point(p + 110, btnY), Size = new Size(140, 34) };
         btnClean.Click += BtnClean_Click;
 
-        // BrowserCacheCleanupControl
-        Controls.Add(lblDescription);
-        Controls.Add(checkedListBox);
-        Controls.Add(lblNote);
-        Controls.Add(btnScan);
-        Controls.Add(btnClean);
+        headerPanel.Controls.Add(lblTitle);
+        headerPanel.Controls.Add(lblSubtitle);
+        headerPanel.Controls.Add(btnScan);
+        headerPanel.Controls.Add(btnClean);
+
+        // Footer panel (docked bottom)
+        var footerPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 30,
+            BackColor = Color.White,
+        };
+
+        lblNote = new Label
+        {
+            Text = "Tip: Close all browsers before cleaning for best results.",
+            Font = AppTheme.CardSecondaryFont,
+            ForeColor = AppTheme.Accent,
+            Location = new Point(p, 4),
+            AutoSize = true,
+        };
+
+        footerPanel.Controls.Add(lblNote);
+
+        // Items panel (fills remaining space)
+        itemsPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.Transparent,
+            Padding = new Padding(p, 0, p, 0),
+        };
+
+        BackColor = Color.White;
+        Controls.Add(itemsPanel);
+        Controls.Add(footerPanel);
+        Controls.Add(headerPanel);
     }
 }

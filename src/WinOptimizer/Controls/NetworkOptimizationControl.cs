@@ -1,8 +1,10 @@
 namespace WinOptimizer.Controls;
 
+using WinOptimizer.Controls.Modern;
 using WinOptimizer.Forms;
 using WinOptimizer.Models;
 using WinOptimizer.Services;
+using WinOptimizer.Theme;
 
 public partial class NetworkOptimizationControl : UserControl
 {
@@ -14,25 +16,37 @@ public partial class NetworkOptimizationControl : UserControl
     {
         _mainForm = mainForm;
         InitializeComponent();
-        LoadSettings();
     }
 
     public int LoadSettings()
     {
-        checkedListBox.Items.Clear();
+        itemsPanel.SuspendLayout();
+        itemsPanel.Controls.Clear();
         _settings = _optimizer.GetSettings();
 
+        var y = 0;
         var unappliedCount = 0;
         foreach (var setting in _settings)
         {
-            var label = setting.IsApplied
-                ? $"{setting.Name} (Applied)"
-                : setting.Name;
-            var index = checkedListBox.Items.Add(label);
-            checkedListBox.SetItemChecked(index, !setting.IsApplied);
+            var item = new ModernCheckItem
+            {
+                Text = setting.Name,
+                Description = setting.Description,
+                IsChecked = !setting.IsApplied,
+                StatusText = setting.IsApplied ? "Applied" : "",
+                StatusColor = setting.IsApplied ? AppTheme.StatusGreen : AppTheme.StatusAmber,
+                ItemTag = setting,
+                Height = 54,
+                Location = new Point(0, y),
+                Width = itemsPanel.ClientSize.Width,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            };
+            itemsPanel.Controls.Add(item);
+            y += item.Height;
             if (!setting.IsApplied) unappliedCount++;
         }
 
+        itemsPanel.ResumeLayout();
         return unappliedCount;
     }
 
@@ -53,10 +67,10 @@ public partial class NetworkOptimizationControl : UserControl
     private void BtnApply_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<NetworkSetting>();
-        for (int i = 0; i < checkedListBox.Items.Count; i++)
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
         {
-            if (checkedListBox.GetItemChecked(i) && !_settings[i].IsApplied)
-                selectedSettings.Add(_settings[i]);
+            if (ctrl.IsChecked && ctrl.ItemTag is NetworkSetting s && !s.IsApplied)
+                selectedSettings.Add(s);
         }
 
         if (selectedSettings.Count == 0)
@@ -98,10 +112,10 @@ public partial class NetworkOptimizationControl : UserControl
     private void BtnRevert_Click(object? sender, EventArgs e)
     {
         var selectedSettings = new List<NetworkSetting>();
-        for (int i = 0; i < checkedListBox.Items.Count; i++)
+        foreach (var ctrl in itemsPanel.Controls.OfType<ModernCheckItem>())
         {
-            if (checkedListBox.GetItemChecked(i) && _settings[i].IsApplied)
-                selectedSettings.Add(_settings[i]);
+            if (ctrl.IsChecked && ctrl.ItemTag is NetworkSetting s && s.IsApplied)
+                selectedSettings.Add(s);
         }
 
         if (selectedSettings.Count == 0)
