@@ -123,6 +123,18 @@ Optimizes Ethernet settings to improve speed and stability:
 
 > **Warning:** Advanced network/registry changes may impact system or network stability. Always document your changes and back up settings before proceeding.
 
+## Versioning
+
+The application version is controlled by `_version.bat` in the repository root:
+
+```bat
+SET VERSION_MAJOR=0
+SET VERSION_MINOR=2
+SET VERSION_BUILD=5
+```
+
+Edit these values to set the version. The build system reads this file automatically and sets `AssemblyVersion`, `FileVersion`, and `InformationalVersion`.
+
 ## System Requirements
 
 - **.NET 8.0 SDK** or later

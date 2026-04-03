@@ -1,13 +1,13 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-04-03)
 // ============================================================================
 
 namespace WinOptimizer;
 
-using WinOptimizer.Helpers;
 using WinOptimizer.Forms;
+using WinOptimizer.Helpers;
 
 static class Program
 {
@@ -15,12 +15,6 @@ static class Program
     static void Main()
     {
         ApplicationConfiguration.Initialize();
-
-        if (!AdminHelper.IsRunningAsAdmin())
-        {
-            AdminHelper.RestartAsAdmin();
-            return;
-        }
 
         LogHelper.Initialize();
         LogHelper.Log("WinOptimizer started");

@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-04-03)
 // ============================================================================
 
 namespace WinOptimizer.Forms;
@@ -20,15 +20,9 @@ public partial class MainForm : Form
             var asm = Assembly.GetExecutingAssembly();
             var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (info != null)
-            {
-                var infoVer = info.InformationalVersion;
-                var plusIndex = infoVer.IndexOf("+build.");
-                if (plusIndex >= 0)
-                    return infoVer[..plusIndex];
-                return infoVer;
-            }
+                return info.InformationalVersion;
             var ver = asm.GetName().Version;
-            return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "1.0.0";
+            return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "0.1.0";
         }
     }
 

@@ -52,14 +52,13 @@ src/WinOptimizer/
 
 ## Versioning
 
-- Version is derived automatically from **git tags** at build time (MSBuild target in `.csproj`)
-- Format: `Major.Minor.Patch` where Patch = number of commits since the last `vX.Y.0` tag
-- Example: tag `v0.1.0` + 3 commits → version `0.1.3`
-- The title bar displays `WinOptimizer v{version}` (hash is stripped from display)
-- To bump **major or minor** version, create a new tag: `git tag v1.0.0`
-- **Patch auto-increments** with every commit — no manual version edits needed
-- Never hardcode `<Version>` in `.csproj`; it is computed by the `SetGitVersion` target
-- **Rule: Every commit automatically increases the build (patch) number.** Do not manually edit version numbers. The patch version equals the number of commits since the last version tag.
+- Version is controlled by **`_version.bat`** in the repository root
+- Format: `Major.Minor.Build` (e.g., `0.2.5`)
+- The `.csproj` `SetVersion` target reads `VERSION_MAJOR`, `VERSION_MINOR`, `VERSION_BUILD` from `_version.bat` at build time
+- The title bar displays `WinOptimizer v{version}`
+- To change the version, edit the `SET VERSION_*` values in `_version.bat`
+- Never hardcode `<Version>` in `.csproj`; it is computed by the `SetVersion` target
+- **Rule:** Update `_version.bat` when releasing a new version. Bump build for patches, minor for features, major for breaking changes.
 
 ## License
 
