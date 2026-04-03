@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-04-03)
 // ============================================================================
 
 namespace WinOptimizer.Services;
@@ -25,7 +25,11 @@ public class UninstallService
             progress?.Report($"Uninstalling {item.DisplayName}...");
             LogHelper.Log($"Uninstalling: {item.DisplayName}");
 
-            var uninstallCommand = item.QuietUninstallString ?? item.UninstallString;
+            // For apps that don't support silent uninstall, always use the interactive uninstaller
+            var uninstallCommand = item.SupportsSilentUninstall
+                ? (item.QuietUninstallString ?? item.UninstallString)
+                : item.UninstallString;
+
             if (string.IsNullOrWhiteSpace(uninstallCommand))
             {
                 errors.Add($"{item.DisplayName}: No uninstall command found");
@@ -35,6 +39,16 @@ public class UninstallService
 
             try
             {
+                if (!item.SupportsSilentUninstall)
+                {
+                    // Launch the interactive uninstaller without waiting — user must complete it manually
+                    LogHelper.Log($"Launching interactive uninstaller for: {item.DisplayName}");
+                    progress?.Report($"{item.DisplayName} requires manual uninstall — launched uninstaller");
+                    LaunchInteractiveUninstall(uninstallCommand);
+                    succeeded++;
+                    continue;
+                }
+
                 var exitCode = await RunUninstallCommand(uninstallCommand);
                 if (exitCode == 0)
                 {
@@ -59,6 +73,50 @@ public class UninstallService
         }
 
         return (succeeded, failed, errors);
+    }
+
+    private static void LaunchInteractiveUninstall(string command)
+    {
+        string fileName;
+        string arguments;
+
+        if (command.StartsWith('"'))
+        {
+            var endQuote = command.IndexOf('"', 1);
+            if (endQuote > 0)
+            {
+                fileName = command[1..endQuote];
+                arguments = command[(endQuote + 1)..].TrimStart();
+            }
+            else
+            {
+                fileName = command;
+                arguments = string.Empty;
+            }
+        }
+        else
+        {
+            var spaceIndex = command.IndexOf(' ');
+            if (spaceIndex > 0)
+            {
+                fileName = command[..spaceIndex];
+                arguments = command[(spaceIndex + 1)..];
+            }
+            else
+            {
+                fileName = command;
+                arguments = string.Empty;
+            }
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            UseShellExecute = true,
+        };
+
+        Process.Start(psi);
     }
 
     private static async Task<int> RunUninstallCommand(string command)

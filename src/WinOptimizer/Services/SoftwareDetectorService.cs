@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-04-03)
 // ============================================================================
 
 namespace WinOptimizer.Services;
@@ -62,7 +62,8 @@ public class SoftwareDetectorService
                 var publisher = appKey.GetValue("Publisher") as string ?? string.Empty;
                 var uninstall = appKey.GetValue("UninstallString") as string ?? string.Empty;
 
-                if (!MatchesKnownSoftware(displayName, publisher))
+                var matchedEntry = FindMatchingEntry(displayName, publisher);
+                if (matchedEntry == null)
                     continue;
 
                 var candidate = new DetectedSoftware
@@ -74,6 +75,7 @@ public class SoftwareDetectorService
                     RegistryKeyPath = appKey.Name,
                     InstallLocation = appKey.GetValue("InstallLocation") as string,
                     DisplayVersion = appKey.GetValue("DisplayVersion") as string,
+                    SupportsSilentUninstall = matchedEntry.SupportsSilentUninstall,
                 };
 
                 // Deduplicate by display name; keep the entry with the most info
@@ -109,7 +111,7 @@ public class SoftwareDetectorService
         return score;
     }
 
-    private static bool MatchesKnownSoftware(string displayName, string publisher)
+    private static KnownSoftwareEntry? FindMatchingEntry(string displayName, string publisher)
     {
         foreach (var entry in KnownSoftwareDatabase.Entries)
         {
@@ -118,10 +120,10 @@ public class SoftwareDetectorService
                 if (displayName.Contains(pattern, StringComparison.OrdinalIgnoreCase) ||
                     publisher.Contains(pattern, StringComparison.OrdinalIgnoreCase))
                 {
-                    return true;
+                    return entry;
                 }
             }
         }
-        return false;
+        return null;
     }
 }

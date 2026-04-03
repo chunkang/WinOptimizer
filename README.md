@@ -22,7 +22,7 @@ The UI includes 5 sections accessible from the sidebar: Dashboard, Security Soft
 
 ### 1. Korean Banking/Security Software Detection & Removal
 
-Detects security utilities installed for banking processes and offers to remove them, as they often consume excessive memory and CPU resources. Supported software includes:
+Detects security utilities installed for banking processes and offers to remove them, as they often consume excessive memory and CPU resources. Some applications (e.g., AhnLab, nProtect) do not support silent uninstall — these are labeled **(manual uninstall)** in the UI and will launch an interactive uninstaller that requires user action. Supported software includes:
 
 | Vendor | Software |
 |--------|----------|

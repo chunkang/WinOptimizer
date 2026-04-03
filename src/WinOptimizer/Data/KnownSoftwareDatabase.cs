@@ -1,19 +1,19 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-04-03)
 // ============================================================================
 
 namespace WinOptimizer.Data;
 
-public record KnownSoftwareEntry(string FriendlyName, string[] MatchPatterns);
+public record KnownSoftwareEntry(string FriendlyName, string[] MatchPatterns, bool SupportsSilentUninstall = true);
 
 public static class KnownSoftwareDatabase
 {
     public static IReadOnlyList<KnownSoftwareEntry> Entries { get; } = new List<KnownSoftwareEntry>
     {
-        new("AhnLab Safe Transaction", new[] { "AhnLab Safe Transaction", "ASTx" }),
-        new("nProtect Online Security", new[] { "nProtect Online Security", "nProtect Netizen", "nProtect KeyCrypt" }),
+        new("AhnLab Safe Transaction", new[] { "AhnLab Safe Transaction", "ASTx" }, SupportsSilentUninstall: false),
+        new("nProtect Online Security", new[] { "nProtect Online Security", "nProtect Netizen", "nProtect KeyCrypt" }, SupportsSilentUninstall: false),
         new("INISAFE CrossWeb EX", new[] { "INISAFE CrossWeb", "INISAFE", "Initech" }),
         new("TouchEn nxKey", new[] { "TouchEn nxKey", "TouchEn" }),
         new("KSign", new[] { "KSign" }),
@@ -44,8 +44,8 @@ public static class KnownSoftwareDatabase
         new("McAfee Secure Bank", new[] { "McAfee Secure Bank" }),
         new("TrendMicro PC Web Security", new[] { "TrendMicro PC Web Security" }),
         new("Nexess NexGuard", new[] { "Nexess", "NexGuard" }),
-        new("INCA nProtect Netizen", new[] { "nProtect Netizen" }),
-        new("INCA nProtect KeyCrypt", new[] { "nProtect KeyCrypt" }),
+        new("INCA nProtect Netizen", new[] { "nProtect Netizen" }, SupportsSilentUninstall: false),
+        new("INCA nProtect KeyCrypt", new[] { "nProtect KeyCrypt" }, SupportsSilentUninstall: false),
         new("Hancom GPKI Tool", new[] { "Hancom GPKI", "GPKI" }),
         new("RaonSecure", new[] { "RaonSecure" }),
     };

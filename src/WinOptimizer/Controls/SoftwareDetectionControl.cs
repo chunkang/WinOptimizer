@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-04-03)
 // ============================================================================
 
 namespace WinOptimizer.Controls;
@@ -40,9 +40,13 @@ public partial class SoftwareDetectionControl : UserControl
             var y = 0;
             foreach (var sw in _detectedSoftware)
             {
+                var displayText = sw.SupportsSilentUninstall
+                    ? sw.DisplayName
+                    : $"{sw.DisplayName} (manual uninstall)";
+
                 var item = new ModernListItem
                 {
-                    Text = sw.DisplayName,
+                    Text = displayText,
                     Publisher = sw.Publisher,
                     Version = sw.DisplayVersion ?? "",
                     IsChecked = true,
