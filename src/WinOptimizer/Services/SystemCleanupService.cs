@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <ck@ckii.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Services;
@@ -111,11 +111,14 @@ public class SystemCleanupService
         return task;
     }
 
-    private static CleanupTask ScanTempDirectory(CleanupType type)
-    {
-        var path = type == CleanupType.WindowsTemp
+    private static string GetTempDirectoryPath(CleanupType type) =>
+        type == CleanupType.WindowsTemp
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp")
             : Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
+
+    private static CleanupTask ScanTempDirectory(CleanupType type)
+    {
+        var path = GetTempDirectoryPath(type);
 
         var task = new CleanupTask
         {
@@ -126,8 +129,7 @@ public class SystemCleanupService
 
         try
         {
-            if (Directory.Exists(path))
-                task.SizeBytes = GetDirectorySize(path);
+            task.SizeBytes = FileSystemHelper.GetDirectorySize(path);
         }
         catch (Exception ex)
         {
@@ -146,66 +148,8 @@ public class SystemCleanupService
             Marshal.ThrowExceptionForHR(hr);
     }
 
-    private static void CleanTempDirectory(CleanupType type)
-    {
-        var path = type == CleanupType.WindowsTemp
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp")
-            : Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
-
-        if (!Directory.Exists(path)) return;
-
-        var dir = new DirectoryInfo(path);
-
-        // Delete files — use TopDirectoryOnly per directory to avoid
-        // UnauthorizedAccessException aborting the entire enumeration
-        DeleteFilesRecursive(dir);
-
-        // Remove empty directories deepest-first
-        DeleteEmptyDirectoriesRecursive(dir);
-    }
-
-    private static void DeleteFilesRecursive(DirectoryInfo dir)
-    {
-        // Delete files in this directory
-        try
-        {
-            foreach (var file in dir.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
-            {
-                try { file.Delete(); }
-                catch { /* Skip locked/in-use files */ }
-            }
-        }
-        catch { /* Skip inaccessible directory */ }
-
-        // Recurse into subdirectories individually
-        try
-        {
-            foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
-            {
-                DeleteFilesRecursive(subDir);
-            }
-        }
-        catch { /* Skip inaccessible directory */ }
-    }
-
-    private static void DeleteEmptyDirectoriesRecursive(DirectoryInfo dir)
-    {
-        try
-        {
-            foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
-            {
-                DeleteEmptyDirectoriesRecursive(subDir);
-
-                try
-                {
-                    if (!subDir.EnumerateFileSystemInfos().Any())
-                        subDir.Delete();
-                }
-                catch { /* Skip locked directories */ }
-            }
-        }
-        catch { /* Skip inaccessible directory */ }
-    }
+    private static void CleanTempDirectory(CleanupType type) =>
+        FileSystemHelper.DeleteDirectoryContents(GetTempDirectoryPath(type));
 
     private static long GetRecycleBinSize()
     {
@@ -221,45 +165,8 @@ public class SystemCleanupService
         }
     }
 
-    private static long GetTempDirectorySize(CleanupType type)
-    {
-        var path = type == CleanupType.WindowsTemp
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp")
-            : Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
-        return GetDirectorySize(path);
-    }
-
-    private static long GetDirectorySize(string path)
-    {
-        if (!Directory.Exists(path)) return 0;
-        return GetDirectorySizeRecursive(new DirectoryInfo(path));
-    }
-
-    private static long GetDirectorySizeRecursive(DirectoryInfo dir)
-    {
-        var size = 0L;
-
-        try
-        {
-            foreach (var file in dir.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
-            {
-                try { size += file.Length; }
-                catch { /* Skip inaccessible files */ }
-            }
-        }
-        catch { /* Skip inaccessible directory */ }
-
-        try
-        {
-            foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
-            {
-                size += GetDirectorySizeRecursive(subDir);
-            }
-        }
-        catch { /* Skip inaccessible directory */ }
-
-        return size;
-    }
+    private static long GetTempDirectorySize(CleanupType type) =>
+        FileSystemHelper.GetDirectorySize(GetTempDirectoryPath(type));
 
     public static string FormatBytes(long bytes) => BrowserCacheCleanupService.FormatBytes(bytes);
 }

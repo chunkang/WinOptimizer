@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Services;
@@ -46,7 +46,7 @@ public class RegistryOptimizerService
                 RegistryPath = @"HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
                 ValueName = "AllowCortana",
                 OptimizedValue = 0,
-                DefaultValue = 1,
+                DefaultValue = null, // Policy value; absent by default, so revert deletes it
                 ValueKind = RegistryValueKind.DWord,
             },
             new()
@@ -85,12 +85,12 @@ public class RegistryOptimizerService
             new()
             {
                 Name = "Disable Telemetry",
-                Description = "Disables Windows diagnostic data collection",
+                Description = "Minimizes Windows diagnostic data (fully off only on Enterprise/Education)",
                 Category = "Telemetry",
                 RegistryPath = @"HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
                 ValueName = "AllowTelemetry",
                 OptimizedValue = 0,
-                DefaultValue = 1,
+                DefaultValue = null, // Policy value; absent by default, so revert deletes it
                 ValueKind = RegistryValueKind.DWord,
             },
         };

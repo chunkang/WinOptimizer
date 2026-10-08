@@ -77,6 +77,8 @@ Optimizes Windows system settings via registry tweaks and cleans up temporary fi
 | Clean Windows Temp | `C:\Windows\Temp` | Deletes system-level temporary files |
 | Clean User Temp | `%LOCALAPPDATA%\Temp` | Deletes user-level temporary files |
 
+Cortana and Telemetry are set through Group Policy registry values, which do not exist by default; reverting them deletes the policy value rather than writing a non-default one. Turning telemetry fully off (`AllowTelemetry=0`) is only honored on Enterprise and Education editions; other editions treat it as the minimum level they support.
+
 > **Note:** Locked or in-use files are safely skipped during cleanup. Always back up your registry before making changes. WinOptimizer prompts you to create a restore point before applying optimizations.
 
 ### 3. Browser Cache Cleanup
@@ -99,10 +101,10 @@ Cleans up browser cache for improved performance and freed disk space, without a
 | Edge | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Cache` |
 | Chrome | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Cache` |
 | Firefox | `%LOCALAPPDATA%\Mozilla\Firefox\Profiles\<profile>\cache2` |
-| Opera | `%APPDATA%\Opera Software\Opera Stable\Cache` |
+| Opera | `%LOCALAPPDATA%\Opera Software\Opera Stable\Cache` (cache) and `%APPDATA%\Opera Software\Opera Stable` (code cache, service workers) |
 | Brave | `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Cache` |
 
-> **Tip:** Close all browsers before running the cache cleanup to avoid file access errors.
+> **Note:** Browsers that are running when you confirm the cleanup are listed in the confirmation dialog (including **Fix All**) and closed before their cache is deleted. Locked files are skipped, and the reported freed space is measured after deletion.
 
 ### 4. Network (Ethernet) Performance Optimization
 
@@ -118,8 +120,10 @@ Optimizes Ethernet settings to improve speed and stability:
 
 | Path | Value | Setting |
 |------|-------|---------|
-| `...\Services\Tcpip\Parameters` | `TcpAckFrequency` → `1` | Reduce ACK latency |
-| `...\Services\Tcpip\Parameters` | `TcpNoDelay` → `1` | Disable Nagle's algorithm |
+| `...\Services\Tcpip\Parameters\Interfaces\{GUID}` | `TcpAckFrequency` → `1` | Reduce ACK latency |
+| `...\Services\Tcpip\Parameters\Interfaces\{GUID}` | `TcpNoDelay` → `1` | Disable Nagle's algorithm |
+
+`TcpAckFrequency` and `TcpNoDelay` only take effect per network interface, so they are written to every adapter that currently has an IPv4 address. Reverting them also removes any copies earlier versions wrote to the global `Tcpip\Parameters` key, where they had no effect.
 | `...\Services\LanmanWorkstation\Parameters` | `DisableBandwidthThrottling` → `1` | Remove throttling |
 | `...\Services\LanmanWorkstation\Parameters` | `DisableLargeMtu` → `0` | Allow large MTU |
 

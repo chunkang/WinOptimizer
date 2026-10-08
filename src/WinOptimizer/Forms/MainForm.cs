@@ -142,6 +142,13 @@ public partial class MainForm : Form
         {
             var totalSize = cleanable.Sum(b => b.CacheSizeBytes);
             summary.AppendLine($"Clean {cleanable.Count} browser cache(s) ({BrowserCacheCleanupService.FormatBytes(totalSize)})");
+
+            // Refresh so the warning matches what CleanCache will actually close
+            foreach (var b in cleanable)
+                b.IsRunning = BrowserCacheCleanupService.IsBrowserRunning(b.BrowserName);
+            var running = cleanable.Where(b => b.IsRunning).Select(b => b.BrowserName).ToList();
+            if (running.Count > 0)
+                summary.AppendLine($"  These running browsers will be closed: {string.Join(", ", running)}");
         }
 
         if (summary.Length == 0)

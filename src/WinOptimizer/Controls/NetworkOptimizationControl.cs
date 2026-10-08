@@ -98,11 +98,16 @@ public partial class NetworkOptimizationControl : UserControl
 
         if (confirm != DialogResult.Yes) return;
 
-        if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before network optimization"))
-            return;
-
         btnApply.Enabled = false;
         btnRevert.Enabled = false;
+
+        if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before network optimization"))
+        {
+            btnApply.Enabled = true;
+            btnRevert.Enabled = true;
+            return;
+        }
+
         _mainForm.SetStatus("Applying network optimizations...");
         _mainForm.SetProgress(30);
 

@@ -184,14 +184,19 @@ public partial class SystemOptimizationControl : UserControl
 
         if (confirm != DialogResult.Yes) return;
 
+        btnApply.Enabled = false;
+        btnRevert.Enabled = false;
+
         if (selectedSettings.Count > 0)
         {
             if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before system optimization"))
+            {
+                btnApply.Enabled = true;
+                btnRevert.Enabled = true;
                 return;
+            }
         }
 
-        btnApply.Enabled = false;
-        btnRevert.Enabled = false;
         _mainForm.SetStatus("Applying system optimizations...");
         _mainForm.SetProgress(20);
 

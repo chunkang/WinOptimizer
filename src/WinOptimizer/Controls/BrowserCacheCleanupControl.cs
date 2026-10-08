@@ -125,6 +125,10 @@ public partial class BrowserCacheCleanupControl : UserControl
         var totalSize = selected.Sum(b => b.CacheSizeBytes);
         var browserList = string.Join("\n", selected.Select(b => $"  - {b.BrowserName} ({b.CacheSizeDisplay})"));
 
+        // Refresh so the warning below matches what CleanCache will actually close
+        foreach (var b in selected)
+            b.IsRunning = BrowserCacheCleanupService.IsBrowserRunning(b.BrowserName);
+
         var runningBrowsers = selected.Where(b => b.IsRunning).ToList();
         var runningWarning = runningBrowsers.Count > 0
             ? $"\n\nThe following browsers are running and will be terminated:\n" +

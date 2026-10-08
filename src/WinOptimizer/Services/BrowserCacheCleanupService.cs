@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Johnny Kang <abjohnkang@gmail.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Services;
@@ -12,7 +12,8 @@ using WinOptimizer.Models;
 
 public class BrowserCacheCleanupService
 {
-    // Chromium-based browsers: (Name, ProcessName, UserDataRelativePath, UseRoamingAppData)
+    // Chromium-based browsers: (Name, ProcessName, UserDataRelativePath, UseRoamingAppData).
+    // Opera keeps its profile under Roaming but its HTTP cache under Local, so both are scanned.
     private static readonly (string Name, string ProcessName, string UserDataPath, bool UseRoaming)[] ChromiumBrowsers =
     {
         ("Microsoft Edge", "msedge", @"Microsoft\Edge\User Data", false),
@@ -21,10 +22,10 @@ public class BrowserCacheCleanupService
         ("Opera", "opera", @"Opera Software\Opera Stable", true),
     };
 
-    // Cache subdirectories to scan within each profile
+    // Cache subdirectories to scan within each profile. These must not nest
+    // (e.g. "Cache" already includes "Cache\Cache_Data"), or sizes are counted twice.
     private static readonly string[] ChromiumCacheSubDirs =
     {
-        @"Cache\Cache_Data",
         "Cache",
         "Code Cache",
         @"Service Worker\CacheStorage",
@@ -39,11 +40,13 @@ public class BrowserCacheCleanupService
         // Detect Chromium-based browsers
         foreach (var (name, processName, userDataPath, useRoaming) in ChromiumBrowsers)
         {
-            var baseDir = useRoaming
-                ? Path.Combine(roamingAppData, userDataPath)
-                : Path.Combine(localAppData, userDataPath);
+            var baseDirs = useRoaming
+                ? new[] { Path.Combine(roamingAppData, userDataPath), Path.Combine(localAppData, userDataPath) }
+                : new[] { Path.Combine(localAppData, userDataPath) };
 
-            var cachePaths = GetChromiumCachePaths(baseDir, name == "Opera");
+            var cachePaths = baseDirs
+                .SelectMany(dir => GetChromiumCachePaths(dir, name == "Opera"))
+                .ToList();
 
             var totalSize = 0L;
             var anyExists = false;
@@ -52,13 +55,13 @@ public class BrowserCacheCleanupService
                 if (Directory.Exists(path))
                 {
                     anyExists = true;
-                    totalSize += GetDirectorySize(path);
+                    totalSize += FileSystemHelper.GetDirectorySize(path);
                 }
             }
 
             if (!anyExists) continue;
 
-            var isRunning = Process.GetProcessesByName(processName).Length > 0;
+            var isRunning = IsProcessRunning(processName);
 
             results.Add(new BrowserCacheInfo
             {
@@ -74,8 +77,8 @@ public class BrowserCacheCleanupService
         var firefoxPaths = GetFirefoxCachePaths(localAppData, roamingAppData);
         if (firefoxPaths.Any(Directory.Exists))
         {
-            var totalSize = firefoxPaths.Where(Directory.Exists).Sum(p => GetDirectorySize(p));
-            var isRunning = Process.GetProcessesByName("firefox").Length > 0;
+            var totalSize = firefoxPaths.Where(Directory.Exists).Sum(p => FileSystemHelper.GetDirectorySize(p));
+            var isRunning = IsProcessRunning("firefox");
 
             results.Add(new BrowserCacheInfo
             {
@@ -97,6 +100,17 @@ public class BrowserCacheCleanupService
     static BrowserCacheCleanupService()
     {
         BrowserProcessNames["Mozilla Firefox"] = "firefox";
+    }
+
+    public static bool IsBrowserRunning(string browserName) =>
+        BrowserProcessNames.TryGetValue(browserName, out var processName) && IsProcessRunning(processName);
+
+    private static bool IsProcessRunning(string processName)
+    {
+        var processes = Process.GetProcessesByName(processName);
+        foreach (var proc in processes)
+            proc.Dispose();
+        return processes.Length > 0;
     }
 
     public static void KillBrowserProcess(string browserName)
@@ -182,6 +196,8 @@ public class BrowserCacheCleanupService
 
         foreach (var browser in browsers)
         {
+            // IsRunning is refreshed by the caller right before confirming, so only
+            // browsers the user was warned about get closed
             if (browser.IsRunning)
                 KillBrowserProcess(browser.BrowserName);
 
@@ -195,10 +211,12 @@ public class BrowserCacheCleanupService
 
                 try
                 {
-                    var size = GetDirectorySize(path);
-                    DeleteDirectoryContents(path);
-                    browserFreed += size;
-                    LogHelper.Log($"Cleaned cache: {browser.BrowserName} - {path} ({size} bytes)");
+                    // Measure before and after: locked files are skipped and must not count as freed
+                    var sizeBefore = FileSystemHelper.GetDirectorySize(path);
+                    FileSystemHelper.DeleteDirectoryContents(path);
+                    var freed = Math.Max(0, sizeBefore - FileSystemHelper.GetDirectorySize(path));
+                    browserFreed += freed;
+                    LogHelper.Log($"Cleaned cache: {browser.BrowserName} - {path} (freed {freed} of {sizeBefore} bytes)");
                 }
                 catch (Exception ex)
                 {
@@ -240,42 +258,6 @@ public class BrowserCacheCleanupService
         }
 
         return paths;
-    }
-
-    private static long GetDirectorySize(string path)
-    {
-        try
-        {
-            return new DirectoryInfo(path)
-                .EnumerateFiles("*", SearchOption.AllDirectories)
-                .Sum(f => f.Length);
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    private static void DeleteDirectoryContents(string path)
-    {
-        var dir = new DirectoryInfo(path);
-
-        foreach (var file in dir.EnumerateFiles("*", SearchOption.AllDirectories))
-        {
-            try { file.Delete(); }
-            catch { /* Skip locked files */ }
-        }
-
-        foreach (var subDir in dir.EnumerateDirectories("*", SearchOption.AllDirectories)
-                     .OrderByDescending(d => d.FullName.Length))
-        {
-            try
-            {
-                if (!subDir.EnumerateFileSystemInfos().Any())
-                    subDir.Delete();
-            }
-            catch { /* Skip locked directories */ }
-        }
     }
 
     public static string FormatBytes(long bytes) =>
