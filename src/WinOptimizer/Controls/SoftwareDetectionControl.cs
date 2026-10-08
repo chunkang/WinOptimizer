@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-04-03)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Controls;
@@ -84,9 +84,10 @@ public partial class SoftwareDetectionControl : UserControl
         _mainForm.UpdateTabBadge(0, count > 0 ? $"{count} found" : null);
     }
 
-    public async Task<(int succeeded, int failed, List<string> errors)> UninstallAllAsync(IProgress<string> progress)
+    public async Task<(int succeeded, int failed, List<string> errors)> UninstallAsync(
+        List<DetectedSoftware> selected, IProgress<string> progress)
     {
-        if (_detectedSoftware.Count == 0)
+        if (selected.Count == 0)
             return (0, 0, new List<string>());
 
         btnScan.Enabled = false;
@@ -94,7 +95,7 @@ public partial class SoftwareDetectionControl : UserControl
 
         try
         {
-            return await _uninstaller.UninstallSelected(_detectedSoftware, progress);
+            return await _uninstaller.UninstallSelected(selected, progress);
         }
         finally
         {
@@ -103,7 +104,12 @@ public partial class SoftwareDetectionControl : UserControl
         }
     }
 
-    public List<DetectedSoftware> GetDetectedSoftware() => _detectedSoftware;
+    // Only the items the user left checked; detection can match unrelated software
+    public List<DetectedSoftware> GetSelectedSoftware() =>
+        itemsPanel.Controls.OfType<ModernListItem>()
+            .Where(i => i.IsChecked)
+            .Select(i => (DetectedSoftware)i.ItemTag!)
+            .ToList();
 
     private void BtnSelectAll_Click(object? sender, EventArgs e)
     {
@@ -119,10 +125,7 @@ public partial class SoftwareDetectionControl : UserControl
 
     private async void BtnUninstall_Click(object? sender, EventArgs e)
     {
-        var selected = itemsPanel.Controls.OfType<ModernListItem>()
-            .Where(i => i.IsChecked)
-            .Select(i => (DetectedSoftware)i.ItemTag!)
-            .ToList();
+        var selected = GetSelectedSoftware();
 
         if (selected.Count == 0)
         {
@@ -130,23 +133,49 @@ public partial class SoftwareDetectionControl : UserControl
             return;
         }
 
-        RestorePointService.CreateRestorePoint("WinOptimizer - Before software removal");
+        var programList = string.Join("\n", selected.Select(s => $"  - {s.DisplayName}"));
+        var confirm = MessageBox.Show(
+            $"The following programs will be uninstalled:\n\n{programList}\n\nContinue?",
+            "Confirm Uninstall",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (confirm != DialogResult.Yes) return;
 
         btnScan.Enabled = false;
         btnUninstall.Enabled = false;
-        _mainForm.SetStatus("Uninstalling selected software...");
 
-        var progress = new Progress<string>(msg => _mainForm.SetStatus(msg));
-        var (succeeded, failed, errors) = await _uninstaller.UninstallSelected(selected, progress);
+        try
+        {
+            if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before software removal"))
+                return;
 
-        var summary = $"Uninstall complete: {succeeded} succeeded, {failed} failed.";
-        if (errors.Count > 0)
-            summary += "\n\nErrors:\n" + string.Join("\n", errors.Select(e => $"  - {e}"));
-        LogHelper.Log(summary);
+            _mainForm.SetStatus("Uninstalling selected software...");
 
-        _mainForm.SetStatus(summary.Split('\n')[0]);
-        btnScan.Enabled = true;
-        btnUninstall.Enabled = true;
+            var progress = new Progress<string>(msg => _mainForm.SetStatus(msg));
+            var (succeeded, failed, errors) = await _uninstaller.UninstallSelected(selected, progress);
+
+            var summary = $"Uninstall complete: {succeeded} succeeded, {failed} failed.";
+            if (errors.Count > 0)
+                summary += "\n\nErrors:\n" + string.Join("\n", errors.Select(e => $"  - {e}"));
+            LogHelper.Log(summary);
+
+            MessageBox.Show(summary, "Results",
+                MessageBoxButtons.OK, errors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+            _mainForm.SetStatus(summary.Split('\n')[0]);
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Log($"Uninstall error: {ex}");
+            MessageBox.Show($"Uninstall failed: {ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _mainForm.SetStatus("Uninstall failed.");
+        }
+        finally
+        {
+            btnScan.Enabled = true;
+            btnUninstall.Enabled = _detectedSoftware.Count > 0;
+        }
 
         var count = await ScanAsync();
         _mainForm.UpdateTabBadge(0, count > 0 ? $"{count} found" : null);

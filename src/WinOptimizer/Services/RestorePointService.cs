@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Services;
@@ -41,7 +41,7 @@ public static class RestorePointService
         }
     }
 
-    public static bool PromptAndCreate(string description)
+    public static async Task<bool> PromptAndCreateAsync(string description)
     {
         var result = MessageBox.Show(
             "Do you want to create a System Restore point before proceeding?\n\nThis is recommended so you can undo changes if needed.",
@@ -52,7 +52,8 @@ public static class RestorePointService
         if (result != DialogResult.Yes)
             return true; // User chose to skip, not an error
 
-        var success = CreateRestorePoint(description);
+        // WMI restore point creation can take tens of seconds; keep the UI responsive
+        var success = await Task.Run(() => CreateRestorePoint(description));
         if (!success)
         {
             var proceed = MessageBox.Show(

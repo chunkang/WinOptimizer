@@ -1,11 +1,12 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-04-03)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Services;
 
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using WinOptimizer.Data;
 using WinOptimizer.Helpers;
@@ -20,6 +21,16 @@ public class SoftwareDetectorService
         (RegistryHive.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
         (RegistryHive.CurrentUser, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
     };
+
+    // A pattern must start a word (so "eSign" does not match "Designer", "UbiKey" does not
+    // match "YubiKey") and must not run on into a lowercase letter (so "eSign" does not match
+    // "eSignature"). Digits and capitals may follow, keeping "MagicLine" -> "MagicLine4NX".
+    private static readonly (KnownSoftwareEntry Entry, Regex[] Patterns)[] CompiledEntries =
+        KnownSoftwareDatabase.Entries
+            .Select(entry => (entry, entry.MatchPatterns
+                .Select(p => new Regex($"(?<![A-Za-z0-9])(?i:{Regex.Escape(p)})(?![a-z])", RegexOptions.Compiled))
+                .ToArray()))
+            .ToArray();
 
     public List<DetectedSoftware> Scan()
     {
@@ -113,15 +124,12 @@ public class SoftwareDetectorService
 
     private static KnownSoftwareEntry? FindMatchingEntry(string displayName, string publisher)
     {
-        foreach (var entry in KnownSoftwareDatabase.Entries)
+        foreach (var (entry, patterns) in CompiledEntries)
         {
-            foreach (var pattern in entry.MatchPatterns)
+            foreach (var pattern in patterns)
             {
-                if (displayName.Contains(pattern, StringComparison.OrdinalIgnoreCase) ||
-                    publisher.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-                {
+                if (pattern.IsMatch(displayName) || pattern.IsMatch(publisher))
                     return entry;
-                }
             }
         }
         return null;

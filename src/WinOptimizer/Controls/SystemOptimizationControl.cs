@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Controls;
@@ -119,19 +119,13 @@ public partial class SystemOptimizationControl : UserControl
         itemsPanel.ResumeLayout();
     }
 
-    public int LoadSettings()
-    {
-        var count = LoadSettingsData();
-        PopulateUI();
-        return count;
-    }
-
     public List<OptimizationSetting> GetUnappliedSettings() =>
         _settings.Where(s => !s.IsApplied).ToList();
 
     public List<CleanupTask> GetCleanableTasks() =>
         _cleanupTasks.Where(t => t.IsCleanable).ToList();
 
+    // Runs on a worker thread from Fix All; the caller refreshes the UI afterwards
     public (int applied, List<string> errors) ApplyAll()
     {
         var totalApplied = 0;
@@ -153,7 +147,6 @@ public partial class SystemOptimizationControl : UserControl
             allErrors.AddRange(errors);
         }
 
-        LoadSettings();
         return (totalApplied, allErrors);
     }
 
@@ -193,7 +186,7 @@ public partial class SystemOptimizationControl : UserControl
 
         if (selectedSettings.Count > 0)
         {
-            if (!RestorePointService.PromptAndCreate("WinOptimizer - Before system optimization"))
+            if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before system optimization"))
                 return;
         }
 

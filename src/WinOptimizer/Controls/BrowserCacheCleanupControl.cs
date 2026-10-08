@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Johnny Kang <abjohnkang@gmail.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Controls;
@@ -78,13 +78,6 @@ public partial class BrowserCacheCleanupControl : UserControl
         itemsPanel.ResumeLayout();
     }
 
-    public (int count, long totalBytes) ScanBrowsers()
-    {
-        DetectBrowserData();
-        PopulateUI();
-        return (_browsers.Count, _browsers.Sum(b => b.CacheSizeBytes));
-    }
-
     private async void BtnScan_Click(object? sender, EventArgs e)
     {
         btnScan.Enabled = false;
@@ -103,15 +96,14 @@ public partial class BrowserCacheCleanupControl : UserControl
     public List<BrowserCacheInfo> GetCleanableBrowsers() =>
         _browsers.Where(b => b.CacheSizeBytes > 0).ToList();
 
+    // Runs on a worker thread from Fix All; the caller refreshes the UI afterwards
     public (int cleaned, long freedBytes, List<string> errors) CleanAll()
     {
         var cleanable = GetCleanableBrowsers();
         if (cleanable.Count == 0)
             return (0, 0, new List<string>());
 
-        var result = _service.CleanCache(cleanable);
-        ScanBrowsers();
-        return result;
+        return _service.CleanCache(cleanable);
     }
 
     private async void BtnClean_Click(object? sender, EventArgs e)

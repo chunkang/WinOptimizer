@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-04-03)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Forms;
@@ -117,14 +117,18 @@ public partial class MainForm : Form
     {
         // Build summary of what will be done
         var summary = new StringBuilder();
-        var swList = softwareControl.GetDetectedSoftware();
+        var swList = softwareControl.GetSelectedSoftware();
         var sysUnapplied = systemControl.GetUnappliedSettings();
         var netUnapplied = networkControl.GetUnappliedSettings();
         var cleanable = browserCacheControl.GetCleanableBrowsers();
         var cleanupTasks = systemControl.GetCleanableTasks();
 
         if (swList.Count > 0)
-            summary.AppendLine($"Uninstall {swList.Count} security software");
+        {
+            summary.AppendLine($"Uninstall {swList.Count} security software:");
+            foreach (var sw in swList)
+                summary.AppendLine($"  - {sw.DisplayName}");
+        }
         if (sysUnapplied.Count > 0)
             summary.AppendLine($"Apply {sysUnapplied.Count} system optimization(s)");
         if (cleanupTasks.Count > 0)
@@ -155,14 +159,18 @@ public partial class MainForm : Form
 
         if (confirm != DialogResult.Yes) return;
 
-        if (swList.Count > 0 || sysUnapplied.Count > 0 || netUnapplied.Count > 0)
-        {
-            if (!RestorePointService.PromptAndCreate("WinOptimizer - Before Fix All"))
-                return;
-        }
-
         sidebar.BtnScanAll.Enabled = false;
         sidebar.BtnFixAll.Enabled = false;
+
+        if (swList.Count > 0 || sysUnapplied.Count > 0 || netUnapplied.Count > 0)
+        {
+            if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before Fix All"))
+            {
+                sidebar.BtnScanAll.Enabled = true;
+                sidebar.BtnFixAll.Enabled = true;
+                return;
+            }
+        }
         var results = new StringBuilder();
 
         // 1. Uninstall security software
@@ -171,7 +179,7 @@ public partial class MainForm : Form
             SetStatus("Uninstalling security software...");
             SetProgress(10);
             var progress = new Progress<string>(msg => SetStatus(msg));
-            var (succeeded, failed, errors) = await softwareControl.UninstallAllAsync(progress);
+            var (succeeded, failed, errors) = await softwareControl.UninstallAsync(swList, progress);
             results.AppendLine($"Software: {succeeded} uninstalled, {failed} failed");
             foreach (var err in errors) results.AppendLine($"  - {err}");
         }

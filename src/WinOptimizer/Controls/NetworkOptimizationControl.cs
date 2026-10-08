@@ -1,7 +1,7 @@
 // ============================================================================
 // WinOptimizer — AGPL-3.0 + Commons Clause
 // Author:  Chun Kang <kurapa@kurapa.com>
-// Modified: Claude (AI-assisted) (2026-03-24)
+// Modified: Claude (AI-assisted) (2026-10-07)
 // ============================================================================
 
 namespace WinOptimizer.Controls;
@@ -60,25 +60,17 @@ public partial class NetworkOptimizationControl : UserControl
         itemsPanel.ResumeLayout();
     }
 
-    public int LoadSettings()
-    {
-        var count = LoadSettingsData();
-        PopulateUI();
-        return count;
-    }
-
     public List<NetworkSetting> GetUnappliedSettings() =>
         _settings.Where(s => !s.IsApplied).ToList();
 
+    // Runs on a worker thread from Fix All; the caller refreshes the UI afterwards
     public (int applied, List<string> errors) ApplyAll()
     {
         var unapplied = GetUnappliedSettings();
         if (unapplied.Count == 0)
             return (0, new List<string>());
 
-        var result = _optimizer.ApplySettings(unapplied);
-        LoadSettings();
-        return result;
+        return _optimizer.ApplySettings(unapplied);
     }
 
     private async void BtnApply_Click(object? sender, EventArgs e)
@@ -106,7 +98,7 @@ public partial class NetworkOptimizationControl : UserControl
 
         if (confirm != DialogResult.Yes) return;
 
-        if (!RestorePointService.PromptAndCreate("WinOptimizer - Before network optimization"))
+        if (!await RestorePointService.PromptAndCreateAsync("WinOptimizer - Before network optimization"))
             return;
 
         btnApply.Enabled = false;

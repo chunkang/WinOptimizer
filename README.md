@@ -22,7 +22,9 @@ The UI includes 5 sections accessible from the sidebar: Dashboard, Security Soft
 
 ### 1. Korean Banking/Security Software Detection & Removal
 
-Detects security utilities installed for banking processes and offers to remove them, as they often consume excessive memory and CPU resources. Some applications (e.g., AhnLab, nProtect) do not support silent uninstall — these are labeled **(manual uninstall)** in the UI and will launch an interactive uninstaller that requires user action. Supported software includes:
+Detects security utilities installed for banking processes and offers to remove them, as they often consume excessive memory and CPU resources. Some applications (e.g., AhnLab, nProtect) do not support silent uninstall — these are labeled **(manual uninstall)** in the UI and will launch an interactive uninstaller that requires user action.
+
+Detected programs are listed with checkboxes, and only the checked ones are removed — both by the **Uninstall** button and by **Fix All**. Before uninstalling, WinOptimizer shows the list of programs for confirmation and offers to create a restore point. Match patterns must appear at the start of a word, so names like "YubiKey" or "Designer" are not mistaken for "UbiKey" or "eSign". MSI-based programs are removed with `msiexec /X` (silently with `/qn` where supported); reboot-required exit codes (3010, 1641) count as success, and an uninstaller that runs longer than 10 minutes is reported as timed out. Supported software includes:
 
 | Vendor | Software |
 |--------|----------|
